@@ -1,0 +1,679 @@
+{
+  "title": "护理评估表",
+  "note": "本表依据《血液透析患者分层分级管理系统》制定，包含基础评估和即时评估两部分。基础评估用于患者分层分级，即时评估用于每次透析前的风险评估。",
+  "dimensions": [
+    {
+      "id": "age",
+      "name": "A1 年龄",
+      "section": "base",
+      "description": "根据患者年龄选择对应分值",
+      "items": [
+        {
+          "id": "age_0",
+          "label": "18~<45岁（青年）",
+          "score": 0
+        },
+        {
+          "id": "age_1",
+          "label": "45~<60岁（中年）",
+          "score": 1
+        },
+        {
+          "id": "age_4",
+          "label": "≥60岁（老年）或<18岁（儿童）",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "dialysis_age",
+      "name": "A2 透析龄",
+      "section": "base",
+      "description": "根据透析年限选择对应分值（年）",
+      "items": [
+        {
+          "id": "da_0",
+          "label": "<1年",
+          "score": 0
+        },
+        {
+          "id": "da_1",
+          "label": "1~<3年",
+          "score": 1
+        },
+        {
+          "id": "da_2",
+          "label": "3~<5年",
+          "score": 2
+        },
+        {
+          "id": "da_3",
+          "label": "5~10年",
+          "score": 3
+        },
+        {
+          "id": "da_4",
+          "label": ">10年",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "self_care",
+      "name": "A3 自理能力（Barthel指数）",
+      "section": "base",
+      "description": "采用Barthel指数评定量表进行评定（分）",
+      "items": [
+        {
+          "id": "sc_0",
+          "label": "无需依赖（100分）",
+          "score": 0
+        },
+        {
+          "id": "sc_1",
+          "label": "轻度依赖（61~99分）",
+          "score": 1
+        },
+        {
+          "id": "sc_2",
+          "label": "中度依赖（41~60分）",
+          "score": 2
+        },
+        {
+          "id": "sc_4",
+          "label": "重度依赖（≤40分）",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "fall_risk",
+      "name": "A4 跌倒/坠床风险",
+      "section": "base",
+      "description": "采用约翰霍普金斯跌倒危险评估量表（分）",
+      "items": [
+        {
+          "id": "fall_0",
+          "label": "低风险（<6分）",
+          "score": 0
+        },
+        {
+          "id": "fall_2",
+          "label": "中风险（6~13分）",
+          "score": 2
+        },
+        {
+          "id": "fall_4",
+          "label": "高风险（>13分）",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "compliance",
+      "name": "A5 治疗依从性",
+      "section": "base",
+      "description": "采用维持性血液透析患者治疗依从性量表（分）",
+      "items": [
+        {
+          "id": "comp_0",
+          "label": "低依从性（≤80分）",
+          "score": 0
+        },
+        {
+          "id": "comp_4",
+          "label": "高依从性（>80分）",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "mental_health",
+      "name": "A6 心理健康状况（GHQ-12）",
+      "section": "base",
+      "description": "采用一般健康问卷（GHQ-12）进行评定",
+      "items": [
+        {
+          "id": "mh_0",
+          "label": "心理状况良好（≤3分）",
+          "score": 0
+        },
+        {
+          "id": "mh_2",
+          "label": "心理状况一般（4~7分）",
+          "score": 2
+        },
+        {
+          "id": "mh_4",
+          "label": "心理状况不佳（8~12分）",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "albumin",
+      "name": "A7 血清白蛋白",
+      "section": "base",
+      "description": "根据血清白蛋白水平选择（g/dl）",
+      "items": [
+        {
+          "id": "alb_1",
+          "label": "≥4.0",
+          "score": 1
+        },
+        {
+          "id": "alb_2",
+          "label": "3.5~<4.0",
+          "score": 2
+        },
+        {
+          "id": "alb_3",
+          "label": "3.0~<3.5",
+          "score": 3
+        },
+        {
+          "id": "alb_4",
+          "label": "<3.0",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "comorbidity",
+      "name": "A8 共病项数",
+      "section": "base",
+      "description": "根据合并疾病数量选择（项）",
+      "items": [
+        {
+          "id": "com_0",
+          "label": "0项",
+          "score": 0
+        },
+        {
+          "id": "com_1",
+          "label": "1项",
+          "score": 1
+        },
+        {
+          "id": "com_2",
+          "label": "2项",
+          "score": 2
+        },
+        {
+          "id": "com_3",
+          "label": "3项",
+          "score": 3
+        },
+        {
+          "id": "com_4",
+          "label": "≥4项",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "acute_complications",
+      "name": "A9 近1个月急性并发症频次",
+      "section": "base",
+      "description": "近1个月血透治疗过程中急性并发症发生频次",
+      "items": [
+        {
+          "id": "ac_0",
+          "label": "0次",
+          "score": 0
+        },
+        {
+          "id": "ac_1",
+          "label": "1次",
+          "score": 1
+        },
+        {
+          "id": "ac_2",
+          "label": "2次",
+          "score": 2
+        },
+        {
+          "id": "ac_3",
+          "label": "3次",
+          "score": 3
+        },
+        {
+          "id": "ac_4",
+          "label": "≥4次",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "anemia",
+      "name": "B1 贫血程度（血红蛋白）",
+      "section": "base",
+      "description": "根据血红蛋白水平选择（g/L）",
+      "items": [
+        {
+          "id": "an_1",
+          "label": "轻度贫血（90~120）",
+          "score": 1
+        },
+        {
+          "id": "an_2",
+          "label": "中度贫血（60~89）",
+          "score": 2
+        },
+        {
+          "id": "an_3",
+          "label": "重度贫血（30~59）",
+          "score": 3
+        },
+        {
+          "id": "an_4",
+          "label": "极重度贫血（<30）",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "potassium",
+      "name": "B2 血钾",
+      "section": "base",
+      "description": "根据血钾水平选择（mmol/L）",
+      "items": [
+        {
+          "id": "k_0",
+          "label": "3.5~5.0",
+          "score": 0
+        },
+        {
+          "id": "k_1",
+          "label": "5.1~5.5或3.0~3.4",
+          "score": 1
+        },
+        {
+          "id": "k_3",
+          "label": "6.0~6.4或2.5~2.9",
+          "score": 3
+        },
+        {
+          "id": "k_4",
+          "label": "≥6.5或<2.5",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "access_type",
+      "name": "C1 血管通路类型及使用时间",
+      "section": "base",
+      "description": "根据血管通路类型及使用年限选择",
+      "note": "AVF 为自体动静脉内瘘（Arteriovenous Fistula）；AVG 为移植物动静脉内瘘（Arteriovenous Graft）；CVC 为中心静脉导管（Central Venous Catheter）；NCC 为非隧道式中心静脉导管（Non-tunnelled Central Catheter）；TCC 为隧道式中心静脉导管（Tunnelled Central Catheter）",
+      "items": [
+        {
+          "id": "acc_0",
+          "label": "AVF≤2年/AVG≤1年/CVC≤1年/NCC或TCC≤7天",
+          "score": 0
+        },
+        {
+          "id": "acc_1",
+          "label": "AVF 3~5年/AVG 2~3年/CVC 2~3年/NCC或TCC 8~13天",
+          "score": 1
+        },
+        {
+          "id": "acc_2",
+          "label": "AVF 6~10年/AVG 4~5年/CVC 4~5年/NCC或TCC 14~21天",
+          "score": 2
+        },
+        {
+          "id": "acc_3",
+          "label": "AVF>11年/AVG≥6年/CVC≥6年/NCC或TCC≥22天",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "access_visibility",
+      "name": "C2 血管显露程度分级",
+      "section": "base",
+      "description": "根据血管显露程度选择（0级最低，3级最高）",
+      "items": [
+        {
+          "id": "vis_0",
+          "label": "0级：即使加压，血管仍不可见",
+          "score": 0
+        },
+        {
+          "id": "vis_1",
+          "label": "1级：需加压，血管可见",
+          "score": 1
+        },
+        {
+          "id": "vis_2",
+          "label": "2级：血管可见，但不高出皮面",
+          "score": 2
+        },
+        {
+          "id": "vis_3",
+          "label": "3级：血管清晰暴露，高出皮面",
+          "score": 3
+        }
+      ]
+    },
+    {
+      "id": "access_function",
+      "name": "C3 血管通路功能",
+      "section": "base",
+      "description": "血管通路功能是否良好",
+      "items": [
+        {
+          "id": "func_0",
+          "label": "是（功能良好）",
+          "score": 0
+        },
+        {
+          "id": "func_4",
+          "label": "否（功能不良）",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "catheter_risk",
+      "name": "C4 导管脱落风险",
+      "section": "base",
+      "description": "采用住院患者导管脱落风险评估量表（分）",
+      "items": [
+        {
+          "id": "cat_0",
+          "label": "轻度（≤8分）",
+          "score": 0
+        },
+        {
+          "id": "cat_2",
+          "label": "中度（9~12分）",
+          "score": 2
+        },
+        {
+          "id": "cat_4",
+          "label": "高度（≥13分）",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "consciousness",
+      "name": "A1 意识",
+      "section": "immediate",
+      "description": "根据患者意识状态选择对应分值",
+      "items": [
+        {
+          "id": "con_0",
+          "label": "意识清楚",
+          "score": 0
+        },
+        {
+          "id": "con_4",
+          "label": "意识障碍",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "temperature",
+      "name": "A2 体温",
+      "section": "immediate",
+      "description": "根据患者体温选择对应分值",
+      "items": [
+        {
+          "id": "temp_0",
+          "label": "36.0~37.0",
+          "score": 0
+        },
+        {
+          "id": "temp_1",
+          "label": "37.1~38.0或35.6~35.9",
+          "score": 1
+        },
+        {
+          "id": "temp_2",
+          "label": "38.1~39.0或35.0~35.5",
+          "score": 2
+        },
+        {
+          "id": "temp_3",
+          "label": "39.1~41.0或<35.0",
+          "score": 3
+        },
+        {
+          "id": "temp_4",
+          "label": ">41.0",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "heart_rate",
+      "name": "A3 心率/脉搏",
+      "section": "immediate",
+      "description": "根据患者心率/脉搏选择对应分值",
+      "items": [
+        {
+          "id": "hr_0",
+          "label": "60~90",
+          "score": 0
+        },
+        {
+          "id": "hr_1",
+          "label": "91~100或51~59",
+          "score": 1
+        },
+        {
+          "id": "hr_2",
+          "label": "101~140或41~50",
+          "score": 2
+        },
+        {
+          "id": "hr_3",
+          "label": "141~160或30~40",
+          "score": 3
+        },
+        {
+          "id": "hr_4",
+          "label": ">160或<30",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "systolic_pressure",
+      "name": "A4 收缩压",
+      "section": "immediate",
+      "description": "根据患者收缩压选择对应分值",
+      "items": [
+        {
+          "id": "sp_0",
+          "label": "90~139",
+          "score": 0
+        },
+        {
+          "id": "sp_1",
+          "label": "140~159",
+          "score": 1
+        },
+        {
+          "id": "sp_2",
+          "label": "160~179或85~89",
+          "score": 2
+        },
+        {
+          "id": "sp_3",
+          "label": "180~189或80~84",
+          "score": 3
+        },
+        {
+          "id": "sp_4",
+          "label": "≥190或<80",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "first_dialysis",
+      "name": "B1 是否为首次血液透析",
+      "section": "immediate",
+      "description": "根据患者是否为首次血液透析选择对应分值",
+      "items": [
+        {
+          "id": "fd_0",
+          "label": "否",
+          "score": 0
+        },
+        {
+          "id": "fd_4",
+          "label": "是",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "weight_growth",
+      "name": "B2 透析期间体重增长率（%）",
+      "section": "immediate",
+      "description": "根据患者透析期间体重增长率选择对应分值",
+      "items": [
+        {
+          "id": "wg_0",
+          "label": "<3",
+          "score": 0
+        },
+        {
+          "id": "wg_2",
+          "label": "3~5",
+          "score": 2
+        },
+        {
+          "id": "wg_4",
+          "label": ">5",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "perioperative",
+      "name": "B3 近一周是否处于围手术期、进行了有创操作、出现外伤或出血",
+      "section": "immediate",
+      "description": "根据患者近一周情况选择对应分值",
+      "items": [
+        {
+          "id": "po_0",
+          "label": "否",
+          "score": 0
+        },
+        {
+          "id": "po_4",
+          "label": "是",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "insulin",
+      "name": "B4 透析前有无注射胰岛素",
+      "section": "immediate",
+      "description": "根据患者透析前是否注射胰岛素选择对应分值",
+      "items": [
+        {
+          "id": "ins_0",
+          "label": "无",
+          "score": 0
+        },
+        {
+          "id": "ins_4",
+          "label": "有",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "antihypertensive",
+      "name": "B5 透析前有无服用降压药",
+      "section": "immediate",
+      "description": "根据患者透析前是否服用降压药选择对应分值",
+      "items": [
+        {
+          "id": "ah_0",
+          "label": "无",
+          "score": 0
+        },
+        {
+          "id": "ah_4",
+          "label": "有",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "fall_during_dialysis",
+      "name": "B6 透析间期有无发生过跌倒",
+      "section": "immediate",
+      "description": "根据患者透析期间是否发生过跌倒选择对应分值",
+      "items": [
+        {
+          "id": "fdd_0",
+          "label": "无",
+          "score": 0
+        },
+        {
+          "id": "fdd_4",
+          "label": "有",
+          "score": 4
+        }
+      ]
+    },
+    {
+      "id": "discomfort",
+      "name": "B7 有无主观不适",
+      "section": "immediate",
+      "description": "根据患者是否有主观不适选择对应分值",
+      "items": [
+        {
+          "id": "dis_0",
+          "label": "无",
+          "score": 0
+        },
+        {
+          "id": "dis_4",
+          "label": "有",
+          "score": 4
+        }
+      ]
+    }
+  ],
+  "levelRules": [
+    {
+      "id": "low",
+      "name": "绿色（低危）",
+      "color": "#2e7d32",
+      "maxScore": 15,
+      "description": "总分 0~15：常规宣教与标准护理路径",
+      "defaultFrequencyDays": 25,
+      "minScore": 0
+    },
+    {
+      "id": "medium",
+      "name": "黄色（中危）",
+      "color": "#f9a825",
+      "minScore": 16,
+      "maxScore": 30,
+      "description": "总分 16~30：加强观察、个体化护理计划",
+      "defaultFrequencyDays": 15
+    },
+    {
+      "id": "high",
+      "name": "红色（高危）",
+      "color": "#c62828",
+      "minScore": 31,
+      "maxScore": 100,
+      "description": "总分 ≥31：重点床旁/全程监护与多学科管理",
+      "defaultFrequencyDays": 5
+    }
+  ]
+}

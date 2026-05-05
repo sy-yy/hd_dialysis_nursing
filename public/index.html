@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="血液透析患者分层分级管理系统" />
+  <meta name="theme-color" content="#1565c0" />
+  <title>血液透析患者分层分级管理系统</title>
+  <link rel="stylesheet" href="app.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+</head>
+<body>
+  <!-- 移动端菜单切换按钮 -->
+  <button type="button" class="menu-toggle" id="menu-toggle" aria-label="切换菜单" aria-expanded="false">
+    <span id="menu-icon">☰</span>
+  </button>
+
+  <!-- 移动端侧边栏覆盖层 -->
+  <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
+
+  <!-- 认证页面 -->
+  <div id="auth-screen" class="auth-wrap" role="main">
+    <div class="auth-card">
+      <div id="login-form" role="form" aria-labelledby="login-title">
+        <h1 id="login-title">医师登录</h1>
+        <p class="sub">血液透析患者分层分级管理系统（内网）</p>
+        <div id="file-protocol-warning" class="msg-error hidden" role="alert">
+          检测到本地文件打开方式，将无法登录。请先在本机命令行进入项目目录执行 <strong>npm start</strong>，再在浏览器地址栏输入
+          <strong>http://127.0.0.1:3081</strong> 访问。
+        </div>
+        <div id="login-error" class="msg-error hidden" role="alert"></div>
+        <div class="form-group">
+          <label for="login-user">用户名</label>
+          <input type="text" id="login-user" autocomplete="username" placeholder="请输入用户名" />
+        </div>
+        <div class="form-group">
+          <label for="login-pass">密码</label>
+          <input type="password" id="login-pass" autocomplete="current-password" placeholder="请输入密码" />
+        </div>
+        <button type="button" class="btn" id="btn-login" style="width: 100%" aria-label="登录系统">进入系统</button>
+        <div class="auth-switch">
+          还没有账号？<a href="#" id="link-to-register">注册医师账号</a>
+        </div>
+      </div>
+      <div id="register-form" class="hidden" role="form" aria-labelledby="register-title">
+        <h1 id="register-title">医师注册</h1>
+        <p class="sub">提交后由管理员审核通过方可登录；用户名不可使用 admin</p>
+        <div id="reg-error" class="msg-error hidden" role="alert"></div>
+        <div id="reg-success" class="msg-success hidden" role="status"></div>
+        <div class="form-group">
+          <label for="reg-name">姓名（显示名）</label>
+          <input type="text" id="reg-name" autocomplete="name" placeholder="请输入姓名" />
+        </div>
+        <div class="form-group">
+          <label for="reg-user">用户名</label>
+          <input type="text" id="reg-user" autocomplete="username" placeholder="请输入用户名（至少2个字符）" />
+        </div>
+        <div class="form-group">
+          <label for="reg-pass">密码（至少 6 位）</label>
+          <input type="password" id="reg-pass" autocomplete="new-password" placeholder="请输入密码（至少6位）" />
+        </div>
+        <button type="button" class="btn" id="btn-register" style="width: 100%">提交注册（待审核）</button>
+        <div class="auth-switch">
+          已有账号？<a href="#" id="link-to-login">返回登录</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主应用界面 -->
+  <div id="app-screen" class="hidden" role="main">
+    <div class="app-container">
+      <!-- 侧边栏 -->
+      <aside class="app-sidebar" id="sidebar" aria-label="主导航">
+        <div class="sidebar-header">
+          <h1>血液透析患者分层分级管理系统</h1>
+        </div>
+        <nav class="nav" aria-label="功能导航">
+          <button type="button" data-nav="dashboard" aria-current="page">
+            <span aria-hidden="true">📊</span> 仪表盘
+          </button>
+          <button type="button" data-nav="patients">
+            <span aria-hidden="true">👥</span> 患者管理
+          </button>
+          <button type="button" data-nav="score">
+            <span aria-hidden="true">📝</span> 分级评分
+          </button>
+          <button type="button" data-nav="records">
+            <span aria-hidden="true">📋</span> 评估记录
+          </button>
+          <button type="button" data-nav="reminders">
+            <span aria-hidden="true">⏰</span> 评估提醒
+          </button>
+          <button type="button" data-nav="admin" id="nav-admin" class="hidden">
+            <span aria-hidden="true">👤</span> 用户审核
+          </button>
+          <button type="button" data-nav="settings" id="nav-settings" class="hidden">
+            <span aria-hidden="true">⚙️</span> 系统设置
+          </button>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="user-bar">
+            <span id="current-user"></span>
+            <button type="button" class="btn secondary" id="btn-change-password" aria-label="修改密码">修改密码</button>
+            <button type="button" class="btn secondary" id="btn-logout" aria-label="退出登录">退出登录</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 主内容区域 -->
+      <main class="app-main" id="main-content">
+        <!-- 仪表盘视图 -->
+        <section data-view="dashboard" class="hidden" aria-label="仪表盘">
+          <header>
+            <h2 style="margin-bottom: 16px; color: var(--text-primary); font-size: 1.5rem;">仪表盘</h2>
+          </header>
+          <div class="grid-stats" role="group" aria-label="统计信息">
+            <div class="stat-card clickable" id="stat-patients" role="button" tabindex="0" aria-label="患者总数">
+              <div class="num" id="dash-patients">0</div>
+              <div class="lbl">在管患者</div>
+            </div>
+            <div class="stat-card clickable" id="stat-assessments" role="button" tabindex="0" aria-label="评估记录总数">
+              <div class="num" id="dash-assessments">0</div>
+              <div class="lbl">评估记录（总）</div>
+            </div>
+            <div class="stat-card clickable" id="stat-doctors" role="button" tabindex="0" aria-label="注册医师总数">
+              <div class="num" id="dash-doctors">0</div>
+              <div class="lbl">注册医师</div>
+            </div>
+          </div>
+          
+          <div class="level-badges" role="group" aria-label="分级统计">
+            <span class="badge low clickable" id="badge-low" role="button" tabindex="0" aria-label="低危患者数量">绿色（低危）<span id="dash-low">0</span></span>
+            <span class="badge med clickable" id="badge-med" role="button" tabindex="0" aria-label="中危患者数量">黄色（中危）<span id="dash-med">0</span></span>
+            <span class="badge high clickable" id="badge-high" role="button" tabindex="0" aria-label="高危患者数量">红色（高危）<span id="dash-high">0</span></span>
+          </div>
+
+          <div class="panel">
+            <h3>逾期未评（按下次评估日已过）</h3>
+            <div class="table-responsive">
+              <table class="data" aria-label="逾期未评估患者列表">
+                <thead>
+                  <tr>
+                    <th>姓名</th>
+                    <th>电话</th>
+                    <th>原定下次评估</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-overdue-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>7 日内待评</h3>
+            <div class="table-responsive">
+              <table class="data" aria-label="7日内待评估患者列表">
+                <thead>
+                  <tr>
+                    <th>姓名</th>
+                    <th>电话</th>
+                    <th>计划日期</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-soon-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 患者管理视图 -->
+        <section data-view="patients" class="hidden" aria-label="患者管理">
+          <header>
+            <h2 style="margin-bottom: 16px; color: var(--text-primary); font-size: 1.5rem;">患者管理</h2>
+          </header>
+          <div class="panel">
+            <div class="toolbar" role="toolbar" aria-label="患者操作工具栏">
+              <button type="button" class="btn" id="btn-add-patient" aria-label="添加新患者">
+                <span aria-hidden="true">+</span> 手动添加
+              </button>
+              <button type="button" class="btn secondary" id="btn-import" aria-label="导入Excel文件">
+                <span aria-hidden="true">📥</span> 一键导入 Excel
+              </button>
+              <button type="button" class="btn secondary" id="btn-export-template" aria-label="下载导入模板">
+                <span aria-hidden="true">📄</span> 下载导入模板
+              </button>
+              <input type="file" id="import-file" accept=".xlsx,.xls" class="hidden" aria-label="选择Excel文件" />
+              <span class="empty-hint">导入首行表头需含「姓名」，红色星号为必填项</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data" aria-label="患者列表">
+                <thead>
+                  <tr>
+                    <th>编号</th>
+                    <th>姓名</th>
+                    <th>性别</th>
+                    <th>年龄</th>
+                    <th>电话</th>
+                    <th>最近分级</th>
+                    <th>上次评估得分</th>
+                    <th>上次评估</th>
+                    <th>下次评估</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="patients-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 分级评分视图 -->
+        <section data-view="score" class="hidden" aria-label="分级评分">
+          <header>
+            <h2 style="margin-bottom: 16px; color: var(--text-primary); font-size: 1.5rem;">分级评分</h2>
+          </header>
+          <div class="panel">
+            <div class="form-group" style="max-width: 420px">
+              <label for="score-patient-search">选择患者</label>
+              <div style="position: relative;">
+                <input type="text" id="score-patient-search" placeholder="输入患者姓名或首拼" style="width: 100%; padding-right: 80px;" aria-label="搜索患者" />
+                <button type="button" id="score-patient-clear" style="position: absolute; right: 60px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #999; cursor: pointer; font-size: 1.2rem;" aria-label="清除搜索">×</button>
+                <button type="button" id="score-patient-submit" class="btn" style="position: absolute; right: 0; top: 0; height: 100%;" aria-label="确认选择患者">确定</button>
+              </div>
+              <div id="score-patient-dropdown" style="position: absolute; max-width: 420px; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 1000; display: none;" role="listbox" aria-label="患者搜索结果"></div>
+              <input type="hidden" id="score-patient-id" />
+              <div id="score-patient-info" style="margin-top: 8px; font-size: 0.9rem; color: #666;" aria-live="polite"></div>
+            </div>
+            
+            <div id="score-content-wrap" class="hidden">
+              <p id="score-rubric-note" class="empty-hint" style="margin-bottom: 16px"></p>
+              
+              <div id="score-history-wrap" class="panel" style="display: none; margin-bottom: 16px">
+                <h3 style="margin-top: 0; font-size: 1rem">该患者最近评估记录</h3>
+                <div class="table-responsive">
+                  <table class="data" aria-label="患者历史评估记录">
+                    <thead>
+                      <tr>
+                        <th>时间</th>
+                        <th>总分</th>
+                        <th>分级</th>
+                        <th>评估人</th>
+                      </tr>
+                    </thead>
+                    <tbody id="score-history-body"></tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="exam-layout">
+                <nav class="exam-nav" id="score-nav-area" aria-label="评分维度导航"></nav>
+                <div class="exam-content" id="score-question-area" aria-label="评分问题区域"></div>
+              </div>
+
+              <div class="form-group" style="margin-top: 16px;">
+                <label for="score-remark">备注</label>
+                <textarea id="score-remark" rows="2" placeholder="可选：特殊情况说明" aria-label="评分备注"></textarea>
+              </div>
+
+              <div class="score-preview" aria-live="polite">
+                当前预览总分：<strong id="score-total">0</strong> 分<br />
+                <span id="score-level-hint" style="font-size: 0.85rem; color: #5c6bc0"></span>
+              </div>
+
+              <div style="margin-top: 16px">
+                <button type="button" class="btn" id="btn-submit-score" aria-label="保存评估">保存本次评估</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 评估记录视图 -->
+        <section data-view="records" class="hidden" aria-label="评估记录">
+          <header>
+            <h2 style="margin-bottom: 16px; color: var(--text-primary); font-size: 1.5rem;">评估记录</h2>
+          </header>
+          <div class="panel">
+            <div class="toolbar" role="toolbar" aria-label="记录操作工具栏">
+              <input type="text" id="records-search" placeholder="搜索患者姓名..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; width: 200px;" aria-label="搜索评估记录" />
+              <select id="records-filter-level" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;" aria-label="按分级筛选">
+                <option value="">全部分级</option>
+                <option value="low">绿色（低危）</option>
+                <option value="medium">黄色（中危）</option>
+                <option value="high">红色（高危）</option>
+              </select>
+              <button type="button" class="btn secondary" id="btn-export-records" aria-label="导出Excel">导出 Excel</button>
+              <button type="button" class="btn danger" id="btn-batch-delete-records" style="display:none;" aria-label="批量删除记录" onclick="batchDeleteRecords()">批量删除</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data" aria-label="评估记录列表">
+                <thead>
+                  <tr>
+                    <th id="records-check-col" style="display:none;"><input type="checkbox" id="records-check-all" title="全选" aria-label="全选所有记录" /></th>
+                    <th>患者姓名</th>
+                    <th>性别</th>
+                    <th>年龄</th>
+                    <th>评估时间</th>
+                    <th>评估分数</th>
+                    <th>评估分级</th>
+                    <th>评估医师</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="records-body"></tbody>
+              </table>
+            </div>
+            <nav id="records-pagination" class="pagination" style="margin-top: 16px; display: flex; justify-content: center; gap: 8px;" aria-label="分页导航"></nav>
+          </div>
+        </section>
+
+        <!-- 评估提醒视图 -->
+        <section data-view="reminders" class="hidden" aria-label="评估提醒">
+          <header>
+            <h2 style="margin-bottom: 16px; color: var(--text-primary); font-size: 1.5rem;">评估提醒</h2>
+          </header>
+          <div class="panel">
+            <h3>已逾期</h3>
+            <div class="table-responsive">
+              <table class="data" aria-label="逾期评估提醒列表">
+                <thead>
+                  <tr>
+                    <th>患者</th>
+                    <th>最近分级</th>
+                    <th>上次评估得分</th>
+                    <th>原定日期</th>
+                    <th>说明</th>
+                  </tr>
+                </thead>
+                <tbody id="rem-overdue-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>未来待评</h3>
+            <div class="table-responsive">
+              <table class="data" aria-label="未来待评估列表">
+                <thead>
+                  <tr>
+                    <th>患者</th>
+                    <th>最近分级</th>
+                    <th>上次评估得分</th>
+                    <th>计划日期</th>
+                    <th>剩余</th>
+                  </tr>
+                </thead>
+                <tbody id="rem-upcoming-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 管理员视图 -->
+        <section data-view="admin" class="hidden" aria-label="用户审核">
+          <header>
+            <h2 style="margin-bottom: 16px; color: var(--text-primary); font-size: 1.5rem;">用户管理</h2>
+          </header>
+          <div class="panel">
+            <h3>待审核注册</h3>
+            <div class="table-responsive">
+              <table class="data" aria-label="待审核用户列表">
+                <thead>
+                  <tr>
+                    <th>用户名</th>
+                    <th>姓名</th>
+                    <th>提交时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-pending-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>医师账号与权限</h3>
+            <p class="empty-hint" style="margin-bottom: 12px">
+              勾选表示允许；管理员账号拥有全部权限，不在此列表中修改。
+            </p>
+            <div class="table-responsive">
+              <table class="data data-compact" aria-label="医师权限管理">
+                <thead>
+                  <tr>
+                    <th>用户名</th>
+                    <th>姓名</th>
+                    <th>状态</th>
+                    <th>启用状态</th>
+                    <th>仪表盘</th>
+                    <th>查看患者</th>
+                    <th>维护患者</th>
+                    <th>导入</th>
+                    <th>评分</th>
+                    <th>系统设置</th>
+                    <th>删除记录</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-users-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 系统设置视图 -->
+        <section data-view="settings" class="hidden" aria-label="系统设置">
+          <header>
+            <h2 style="margin-bottom: 16px; color: var(--text-primary); font-size: 1.5rem;">系统设置</h2>
+          </header>
+          <div class="panel">
+            <h3>患者信息字段管理</h3>
+            <div id="settings-fields-list" role="group" aria-label="患者信息字段设置"></div>
+            <button type="button" class="btn secondary" id="btn-add-field" aria-label="添加自定义字段">添加字段</button>
+          </div>
+
+          <div class="panel">
+            <h3>评分级别设置</h3>
+            <div id="settings-levels-list" role="group" aria-label="评分级别设置"></div>
+            <button type="button" class="btn secondary" id="btn-add-level" aria-label="添加评分级别">添加级别</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- 患者信息模态框 -->
+  <div id="patient-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="pm-title">
+    <div class="modal" style="max-width: 600px;">
+      <header class="modal-header">
+        <h3 id="pm-title">新增患者</h3>
+        <button type="button" class="close" aria-label="关闭对话框">&times;</button>
+      </header>
+      <div class="modal-body">
+        <input type="hidden" id="pm-id" />
+        <div class="form-group">
+          <label for="pm-name">姓名 *</label>
+          <input type="text" id="pm-name" required aria-required="true" placeholder="请输入患者姓名" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pm-gender">性别</label>
+            <input type="text" id="pm-gender" placeholder="男/女" aria-label="患者性别" />
+          </div>
+          <div class="form-group">
+            <label for="pm-birth">出生日期</label>
+            <input type="date" id="pm-birth" aria-label="患者出生日期" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pm-phone">联系电话</label>
+            <input type="tel" id="pm-phone" placeholder="请输入联系电话" aria-label="患者联系电话" />
+          </div>
+          <div class="form-group">
+            <label for="pm-idcard">身份证</label>
+            <input type="text" id="pm-idcard" placeholder="18位身份证号码" aria-label="患者身份证号码" maxlength="18" />
+            <span id="pm-idcard-error" class="msg-error hidden" role="alert">身份证号码格式不正确</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pm-firstDialysis">首次透析日期</label>
+            <input type="date" id="pm-firstDialysis" aria-label="患者首次透析日期" />
+          </div>
+          <div class="form-group">
+            <label for="pm-height">身高 (cm)</label>
+            <input type="number" id="pm-height" min="100" max="250" step="0.1" placeholder="厘米" aria-label="患者身高" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pm-dryWeight">干体重 (kg)</label>
+            <input type="number" id="pm-dryWeight" min="30" max="200" step="0.1" placeholder="公斤" aria-label="患者干体重" />
+          </div>
+          <div class="form-group">
+            <label for="pm-preWeight">透前体重 (kg)</label>
+            <input type="number" id="pm-preWeight" min="30" max="200" step="0.1" placeholder="公斤" aria-label="患者透前体重" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="pm-dialysisFreq">透析频次</label>
+          <input type="text" id="pm-dialysisFreq" placeholder="例如：3天2次" aria-label="患者透析频次" />
+        </div>
+        <div class="form-group">
+          <label for="pm-freq">评估频率（天，留空则按本次分级默认）</label>
+          <input type="number" id="pm-freq" min="1" placeholder="例如：30" aria-label="评估频率（天）" />
+        </div>
+        <div class="form-group">
+          <label for="pm-notes">备注</label>
+          <textarea id="pm-notes" rows="2" placeholder="可选：填写备注信息" aria-label="备注信息"></textarea>
+        </div>
+      </div>
+      <footer class="modal-actions">
+        <button type="button" class="btn secondary" id="pm-cancel" aria-label="取消">取消</button>
+        <button type="button" class="btn" id="pm-save" aria-label="保存患者信息">保存</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- 修改密码模态框 -->
+  <div id="change-password-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="change-password-title">
+    <div class="modal" style="max-width: 450px;">
+      <header class="modal-header">
+        <h3 id="change-password-title">修改密码</h3>
+        <button type="button" class="close" aria-label="关闭对话框">&times;</button>
+      </header>
+      <div class="modal-body">
+        <div id="change-password-error" class="msg-error hidden" role="alert"></div>
+        <div class="form-group">
+          <label for="current-password">当前密码</label>
+          <input type="password" id="current-password" aria-label="当前密码" />
+        </div>
+        <div class="form-group">
+          <label for="new-password">新密码（至少 6 位）</label>
+          <input type="password" id="new-password" aria-label="新密码" minlength="6" />
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">确认新密码</label>
+          <input type="password" id="confirm-password" aria-label="确认新密码" minlength="6" />
+        </div>
+      </div>
+      <footer class="modal-actions">
+        <button type="button" class="btn secondary" id="change-password-cancel" aria-label="取消">取消</button>
+        <button type="button" class="btn" id="change-password-save" aria-label="保存新密码">保存</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- 评估详情模态框 -->
+  <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
+    <div class="modal" style="max-width: 650px;">
+      <header class="modal-header">
+        <h3 id="detail-modal-title">评估详情</h3>
+        <button type="button" class="close" aria-label="关闭对话框">&times;</button>
+      </header>
+      <div class="modal-body" id="modal-detail-content"></div>
+      <footer class="modal-actions">
+        <button type="button" class="btn secondary" aria-label="关闭详情">关闭</button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="js/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

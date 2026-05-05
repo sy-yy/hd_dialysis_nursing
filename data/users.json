@@ -1,0 +1,36 @@
+[
+  {
+    "id": "u_e14eb38cdae55bf0",
+    "username": "admin",
+    "passwordHash": "$2b$10$9cXcp0uo1bRwA.iVz3RTMeLheuYsvMCG.RAa1GpwZda31ZoSRy9du",
+    "displayName": "系统管理员",
+    "role": "admin",
+    "status": "active",
+    "permissions": {
+      "viewDashboard": true,
+      "viewPatients": true,
+      "managePatients": true,
+      "importPatients": true,
+      "scorePatients": true,
+      "systemSettings": false
+    },
+    "createdAt": "2026-04-11T06:55:49.048Z"
+  },
+  {
+    "id": "u_d685785ff4afc77b",
+    "username": "test",
+    "passwordHash": "$2b$10$9d7heNUqwZfBQgPqZuXFKefAmOShBqRqmGs6zNJFaHtm9LDkmQi7y",
+    "displayName": "test",
+    "createdAt": "2026-04-11T08:55:23.746Z",
+    "role": "doctor",
+    "status": "active",
+    "permissions": {
+      "viewDashboard": true,
+      "viewPatients": true,
+      "managePatients": true,
+      "importPatients": true,
+      "scorePatients": true,
+      "systemSettings": true
+    }
+  }
+]

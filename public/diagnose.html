@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统诊断 - 血液透析患者分层分级管理系统</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; }
+    h2 { color: #555; font-size: 18px; }
+    .status { 
+      padding: 10px; 
+      margin: 10px 0;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .warning { background: #fff3cd; color: #856404; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #0056b3; }
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 系统诊断工具</h1>
+  <p>此页面帮助诊断登录问题。请访问 <a href="http://127.0.0.1:3081/diagnose.html" target="_blank">http://127.0.0.1:3081/diagnose.html</a></p>
+
+  <div class="card">
+    <h2>1. 访问方式检查</h2>
+    <div id="protocol-check"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. 服务器连接测试</h2>
+    <button onclick="testServerConnection()">测试服务器连接</button>
+    <div id="server-status"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. 登录API测试</h2>
+    <button onclick="testLogin()">测试登录 (admin/admin@123)</button>
+    <div id="login-status"></div>
+  </div>
+
+  <div class="card">
+    <h2>4. 会话检查</h2>
+    <button onclick="testSession()">检查会话状态</button>
+    <div id="session-status"></div>
+  </div>
+
+  <div class="card">
+    <h2>5. 浏览器信息</h2>
+    <div id="browser-info"></div>
+  </div>
+
+  <div class="card">
+    <h2>📋 诊断结果</h2>
+    <pre id="diagnosis-result">点击上方按钮开始诊断...</pre>
+  </div>
+
+  <script>
+    const results = [];
+
+    function addResult(test, status, message) {
+      results.push(`[${status}] ${test}: ${message}`);
+      document.getElementById('diagnosis-result').textContent = results.join('\n');
+    }
+
+    // 1. 检查访问方式
+    function checkProtocol() {
+      const div = document.getElementById('protocol-check');
+      if (location.protocol === 'file:') {
+        div.innerHTML = '<div class="status error">❌ 错误：您是通过双击文件打开的（file:// 协议）<br>请使用浏览器访问 <a href="http://127.0.0.1:3081">http://127.0.0.1:3081</a></div>';
+        addResult('访问方式', 'ERROR', '使用file://协议访问，需要改用http://');
+      } else {
+        div.innerHTML = `<div class="status success">✅ 正确：您通过 ${location.protocol}//${location.host} 访问</div>`;
+        addResult('访问方式', 'OK', `使用${location.protocol}协议访问`);
+      }
+    }
+
+    // 2. 测试服务器连接
+    async function testServerConnection() {
+      const div = document.getElementById('server-status');
+      div.innerHTML = '<div class="status info">⏳ 测试中...</div>';
+      
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include'
+        });
+        div.innerHTML = `<div class="status success">✅ 服务器连接成功！状态码: ${response.status}</div>`;
+        addResult('服务器连接', 'OK', `服务器响应状态码: ${response.status}`);
+      } catch (e) {
+        div.innerHTML = `<div class="status error">❌ 服务器连接失败: ${e.message}<br>请确保服务器已启动（运行 node server.js）</div>`;
+        addResult('服务器连接', 'ERROR', e.message);
+      }
+    }
+
+    // 3. 测试登录
+    async function testLogin() {
+      const div = document.getElementById('login-status');
+      div.innerHTML = '<div class="status info">⏳ 登录中...</div>';
+      
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ username: 'admin', password: 'admin@123' })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          div.innerHTML = `<div class="status success">✅ 登录成功！<br>用户信息: ${JSON.stringify(data.user, null, 2)}</div>`;
+          addResult('登录测试', 'OK', `登录成功，用户: ${data.user.username}`);
+        } else {
+          div.innerHTML = `<div class="status error">❌ 登录失败: ${data.error || response.statusText}</div>`;
+          addResult('登录测试', 'ERROR', data.error || response.statusText);
+        }
+      } catch (e) {
+        div.innerHTML = `<div class="status error">❌ 请求失败: ${e.message}</div>`;
+        addResult('登录测试', 'ERROR', e.message);
+      }
+    }
+
+    // 4. 检查会话
+    async function testSession() {
+      const div = document.getElementById('session-status');
+      div.innerHTML = '<div class="status info">⏳ 检查中...</div>';
+      
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          div.innerHTML = `<div class="status success">✅ 会话有效！<br>当前用户: ${JSON.stringify(data.user, null, 2)}</div>`;
+          addResult('会话检查', 'OK', `会话有效，用户: ${data.user.username}`);
+        } else if (response.status === 401) {
+          div.innerHTML = `<div class="status warning">⚠️ 未登录或会话已过期</div>`;
+          addResult('会话检查', 'WARN', '未登录或会话已过期');
+        } else {
+          const data = await response.json();
+          div.innerHTML = `<div class="status error">❌ 检查失败: ${data.error || response.statusText}</div>`;
+          addResult('会话检查', 'ERROR', data.error || response.statusText);
+        }
+      } catch (e) {
+        div.innerHTML = `<div class="status error">❌ 请求失败: ${e.message}</div>`;
+        addResult('会话检查', 'ERROR', e.message);
+      }
+    }
+
+    // 5. 浏览器信息
+    function showBrowserInfo() {
+      const div = document.getElementById('browser-info');
+      const info = {
+        '用户代理': navigator.userAgent,
+        'Cookie启用': navigator.cookieEnabled,
+        '语言': navigator.language,
+        '平台': navigator.platform,
+        '在线状态': navigator.onLine,
+      };
+      
+      div.innerHTML = '<pre>' + JSON.stringify(info, null, 2) + '</pre>';
+      addResult('浏览器信息', 'INFO', '已收集浏览器信息');
+    }
+
+    // 页面加载时自动检查
+    window.addEventListener('load', () => {
+      checkProtocol();
+      showBrowserInfo();
+    });
+  </script>
+</body>
+</html>

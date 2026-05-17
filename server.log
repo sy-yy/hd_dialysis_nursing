@@ -1,0 +1,600 @@
+用户数据库连接成功
+患者数据库连接成功
+评估数据库连接成功
+patients 表结构检查完成，无需迁移
+数据库初始化完成
+血液透析患者分层分级管理系统已启动
+  本机访问: http://127.0.0.1:3081
+  局域网访问: http://10.0.0.117:3081 （勿双击打开 public/index.html）
+日志记录成功: {
+  timestamp: '2026-05-10T04:46:01.159Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/health',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/health 200 - 4ms',
+  userAgent: 'curl/8.18.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.158Z',
+  level: 'info',
+  method: 'GET',
+  path: '/',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET / 304 - 1ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.197Z',
+  level: 'warn',
+  method: 'GET',
+  path: '/.well-known/appspecific/com.chrome.devtools.json',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /.well-known/appspecific/com.chrome.devtools.json 404 - 6ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.204Z',
+  level: 'info',
+  method: 'GET',
+  path: '/app.css',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /app.css 304 - 3ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.208Z',
+  level: 'info',
+  method: 'GET',
+  path: '/js/xlsx.full.min.js',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /js/xlsx.full.min.js 304 - 5ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.209Z',
+  level: 'info',
+  method: 'GET',
+  path: '/level-manager.js',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /level-manager.js 304 - 6ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.214Z',
+  level: 'info',
+  method: 'GET',
+  path: '/patch-refresh-patients.js',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /patch-refresh-patients.js 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.220Z',
+  level: 'info',
+  method: 'GET',
+  path: '/patch-refresh-dashboard.js',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /patch-refresh-dashboard.js 304 - 7ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.222Z',
+  level: 'info',
+  method: 'GET',
+  path: '/patch-refresh-settings.js',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /patch-refresh-settings.js 304 - 9ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.228Z',
+  level: 'info',
+  method: 'GET',
+  path: '/app.js',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /app.js 200 - 25ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:12.307Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/auth/me',
+  ip: '127.0.0.1',
+  userId: '',
+  username: '',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/auth/me 200 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:22.303Z',
+  level: 'info',
+  method: 'POST',
+  path: '/api/auth/login',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'LOGIN_SUCCESS',
+  targetType: 'AUTH',
+  targetId: '',
+  details: '登录成功，角色: admin',
+  userAgent: ''
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:22.305Z',
+  level: 'info',
+  method: 'POST',
+  path: '/api/auth/login',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'POST /api/auth/login 200 - 80ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:22.313Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/auth/me',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/auth/me 200 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:22.324Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/rubric',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/rubric 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:22.339Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/patients/with-assessments',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/patients/with-assessments 200 - 4ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:22.346Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/assessments',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/assessments 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:49:22.354Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/admin/users',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/admin/users 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:11.864Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/reminders?_t=1778388851857',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/reminders?_t=1778388851857 200 - 3ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:11.877Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/assessments?_t=1778388851871',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/assessments?_t=1778388851871 200 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:24.445Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/settings/patient-fields',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/settings/patient-fields 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:24.453Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/rubric',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/rubric 304 - 1ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:32.157Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/reminders?_t=1778388872153',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/reminders?_t=1778388872153 200 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:32.164Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/assessments?_t=1778388872162',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/assessments?_t=1778388872162 200 - 1ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:33.423Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/admin/users',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/admin/users 304 - 3ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:34.628Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/settings/patient-fields',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/settings/patient-fields 304 - 1ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:34.635Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/rubric',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/rubric 304 - 1ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:45.529Z',
+  level: 'info',
+  method: 'PUT',
+  path: '/api/rubric/levels/medium',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'PUT /api/rubric/levels/medium 200 - 4ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:45.537Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/settings/patient-fields',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/settings/patient-fields 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:45.546Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/rubric',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/rubric 200 - 0ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:54.365Z',
+  level: 'info',
+  method: 'PUT',
+  path: '/api/rubric/levels/high',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'PUT /api/rubric/levels/high 200 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:54.374Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/settings/patient-fields',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/settings/patient-fields 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:54.381Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/rubric',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/rubric 200 - 1ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:59.252Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/reminders?_t=1778388899250',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/reminders?_t=1778388899250 200 - 1ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:54:59.260Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/assessments?_t=1778388899257',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/assessments?_t=1778388899257 200 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:55:03.231Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/assessments',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/assessments 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+[DEBUG] /api/patients 返回 5 条记录
+[DEBUG] 第一条患者数据: {"id":"p_7axysu7bqsdhhlf4","name":"赵六","gender":"男","birthDate":"1998-12-23","phone":"16666666666","idCard":"432517199812231235","dialysisId":"","bedNo":"","firstDialysisDate":"2025-01-11","height":"170","dryWeight":"60","preWeight":"62","dialysisFreq":null,"notes":"","assessmentFrequencyDays":null,"createdAt":"2026-05-05T07:31:30.739Z","lastAssessment":null,"nextAssessmentDue":null,"latestLevel":null,"latestScore":null,"patientNo":"p000005"}
+日志记录成功: {
+  timestamp: '2026-05-10T04:55:03.239Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/patients',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/patients 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:55:13.346Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/patients/with-assessments',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/patients/with-assessments 200 - 4ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:55:59.000Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/reminders?_t=1778388958996',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/reminders?_t=1778388958996 200 - 1ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:55:59.007Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/assessments?_t=1778388959004',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/assessments?_t=1778388959004 200 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+日志记录成功: {
+  timestamp: '2026-05-10T04:56:22.017Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/assessments',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/assessments 304 - 2ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}
+[DEBUG] /api/patients 返回 5 条记录
+[DEBUG] 第一条患者数据: {"id":"p_7axysu7bqsdhhlf4","name":"赵六","gender":"男","birthDate":"1998-12-23","phone":"16666666666","idCard":"432517199812231235","dialysisId":"","bedNo":"","firstDialysisDate":"2025-01-11","height":"170","dryWeight":"60","preWeight":"62","dialysisFreq":null,"notes":"","assessmentFrequencyDays":null,"createdAt":"2026-05-05T07:31:30.739Z","lastAssessment":null,"nextAssessmentDue":null,"latestLevel":null,"latestScore":null,"patientNo":"p000005"}
+日志记录成功: {
+  timestamp: '2026-05-10T04:56:22.027Z',
+  level: 'info',
+  method: 'GET',
+  path: '/api/patients',
+  ip: '127.0.0.1',
+  userId: 'u_e14eb38cdae55bf0',
+  username: 'admin',
+  action: 'ACCESS',
+  targetType: 'SYSTEM',
+  targetId: '',
+  details: 'GET /api/patients 304 - 1ms',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0'
+}

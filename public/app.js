@@ -664,7 +664,7 @@ let me = null; // 当前用户
 let patientsCache = []; // 患者列表缓存
 let currentEditingPatientId = null; // 当前正在编辑的患者ID，用于防止modal关闭后ID丢失
 let recordsPage = 1; // 评估记录当前页
-const PERM_KEYS = ['viewDashboard', 'viewPatients', 'managePatients', 'importPatients', 'scorePatients', 'systemSettings', 'deleteRecords'];
+const PERM_KEYS = ['viewDashboard', 'viewPatients', 'managePatients', 'importPatients', 'scorePatients', 'systemSettings', 'deleteRecords', 'deletePatients'];
 
 // ==================== 工具函数 ====================
 
@@ -746,6 +746,131 @@ function validateIdCard(idCard) {
 }
 
 /**
+ * 严格校验身份证号码
+ * @param {string} idCard - 身份证号
+ * @returns {Object} { valid: boolean, error: string|null }
+ */
+function validateIdCardStrict(idCard) {
+  // 空值不校验（允许为空）
+  if (!idCard || idCard.trim() === '') {
+    return { valid: true, error: null };
+  }
+  
+  const id = idCard.trim();
+  
+  // 1. 检查位数是否为18位
+  if (id.length !== 18) {
+    return { 
+      valid: false, 
+      error: `身份证号码位数不正确：当前${id.length}位，应为18位。请输入正确的18位身份证号码。` 
+    };
+  }
+  
+  // 2. 基本格式校验（18位，前17位为数字，最后一位可以是数字或X/x）
+  const basicReg = /^\d{17}[\dXx]$/;
+  if (!basicReg.test(id)) {
+    return { 
+      valid: false, 
+      error: '身份证号码格式不正确。前17位应为数字，最后一位为数字或X（不区分大小写）。' 
+    };
+  }
+  
+  // 3. 提取出生年月
+  let birthYear, birthMonth, birthDay;
+  try {
+    birthYear = parseInt(id.substring(6, 10), 10);
+    birthMonth = parseInt(id.substring(10, 12), 10);
+    birthDay = parseInt(id.substring(12, 14), 10);
+    
+    // 检查是否为有效日期
+    if (isNaN(birthYear) || isNaN(birthMonth) || isNaN(birthDay)) {
+      return { 
+        valid: false, 
+        error: '无法从身份证号码中提取有效的出生年月。请检查身份证号码是否正确。' 
+      };
+    }
+    
+    // 检查月份和日期范围
+    if (birthMonth < 1 || birthMonth > 12) {
+      return { 
+        valid: false, 
+        error: '身份证号码中的出生月份无效（应为1-12）。请检查身份证号码是否正确。' 
+      };
+    }
+    
+    if (birthDay < 1 || birthDay > 31) {
+      return { 
+        valid: false, 
+        error: '身份证号码中的出生日期无效（应为1-31）。请检查身份证号码是否正确。' 
+      };
+    }
+    
+    // 构造出生日期并验证
+    const birthDate = new Date(birthYear, birthMonth - 1, birthDay);
+    if (birthDate.getFullYear() !== birthYear || 
+        birthDate.getMonth() !== birthMonth - 1 || 
+        birthDate.getDate() !== birthDay) {
+      return { 
+        valid: false, 
+        error: '身份证号码中的出生日期不存在（如2月30日）。请检查身份证号码是否正确。' 
+      };
+    }
+  } catch (e) {
+    return { 
+      valid: false, 
+      error: '无法从身份证号码中提取出生年月。请检查身份证号码是否正确。' 
+    };
+  }
+  
+  // 4. 检查出生日期是否大于当前日期
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // 忽略时间部分
+  const birthDateObj = new Date(birthYear, birthMonth - 1, birthDay);
+  
+  if (birthDateObj > today) {
+    return { 
+      valid: false, 
+      error: `身份证号码中的出生日期（${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}）晚于当前日期，不符合常理。请重新输入。` 
+    };
+  }
+  
+  // 5. 计算年龄并检查是否大于120岁
+  let age = today.getFullYear() - birthYear;
+  if (today.getMonth() < birthMonth - 1 || 
+      (today.getMonth() === birthMonth - 1 && today.getDate() < birthDay)) {
+    age--;
+  }
+  
+  if (age > 120) {
+    return { 
+      valid: false, 
+      error: `根据身份证号码计算出的年龄为${age}岁，超过合理范围（最大120岁）。请检查身份证号码是否正确。` 
+    };
+  }
+  
+  // 6. 校验码校验（第18位）
+  const factor = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+  const checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+  let sum = 0;
+  
+  for (let i = 0; i < 17; i++) {
+    sum += parseInt(id.charAt(i), 10) * factor[i];
+  }
+  
+  const checkCode = checkCodes[sum % 11];
+  const lastChar = id.charAt(17).toUpperCase();
+  
+  if (lastChar !== checkCode) {
+    return { 
+      valid: false, 
+      error: `身份证号码校验码不正确（最后一位应为"${checkCode}"）。请检查身份证号码是否正确。` 
+    };
+  }
+  
+  return { valid: true, error: null };
+}
+
+/**
  * 根据身份证号计算年龄
  * @param {string} id - 身份证号
  * @returns {number|null} 年龄或null
@@ -793,6 +918,35 @@ function getAgeFromBirthDate(b) {
   } catch (e) {
     return null;
   }
+}
+
+/**
+ * 自动计算并显示年龄
+ * 从出生日期或身份证号计算年龄，并显示在年龄字段中
+ */
+function updateAgeDisplay() {
+  const pmBirth = document.getElementById('pm-birth');
+  const pmIdCard = document.getElementById('pm-idcard');
+  const pmAge = document.getElementById('pm-age');
+  
+  if (!pmAge) return;
+  
+  let age = null;
+  
+  // 优先使用出生日期
+  if (pmBirth && pmBirth.value) {
+    age = getAgeFromBirthDate(pmBirth.value);
+  }
+  
+  // 如果出生日期无效，尝试从身份证号计算
+  if (age === null && pmIdCard && pmIdCard.value) {
+    const idCard = pmIdCard.value.trim();
+    if (idCard.length === 15 || idCard.length === 18) {
+      age = getAgeFromIdCard(idCard);
+    }
+  }
+  
+  pmAge.value = age !== null ? age : '';
 }
 
 /**
@@ -1498,74 +1652,9 @@ async function refreshPatients() {
     });
     
     // 绑定操作按钮事件
-    tbody.onclick = async (e) => {
-      const editBtn = e.target.closest('.btn-edit');
-      const scoreBtn = e.target.closest('.btn-score');
-      const delBtn = e.target.closest('.btn-del');
-      
-      if (editBtn) {
-        const patientId = editBtn.getAttribute('data-id');
-        console.log('[DEBUG] 点击编辑按钮, data-id =', patientId);
-        
-        // 先尝试通过 id 查找，如果找不到则尝试通过 patientNo 查找
-        let patient = patientsCache.find(x => x.id === patientId);
-        if (!patient && patientId) {
-          patient = patientsCache.find(x => x.patientNo === patientId);
-        }
-        // 如果 data-id 为空，尝试从当前行获取 patientNo
-        if (!patient && !patientId) {
-          const tr = editBtn.closest('tr');
-          if (tr) {
-            const firstTd = tr.querySelector('td');
-            if (firstTd) {
-              const pNo = firstTd.textContent.trim();
-              patient = patientsCache.find(x => x.patientNo === pNo || x.id === pNo);
-            }
-          }
-        }
-        
-        console.log('[DEBUG] 从 patientsCache 查找患者:', patient ? `找到患者: ${patient.name}` : '未找到患者');
-        if (patient) openPatientModal(patient);
-        else showMessage('无法找到该患者数据，请刷新页面后重试', 'warning');
-      }
-      
-      if (scoreBtn) {
-        const patient = patientsCache.find(x => x.id === scoreBtn.getAttribute('data-id'));
-        if (patient) {
-          show('score');
-          const sInput = document.getElementById('score-patient-search');
-          const pIdInput = document.getElementById('score-patient-id');
-          const pInfoDiv = document.getElementById('score-patient-info');
-          
-          if (sInput) sInput.value = patient.name;
-          if (pIdInput) pIdInput.value = patient.id;
-          if (pInfoDiv) {
-            pInfoDiv.textContent = `已选择：${patient.name}，${patient.gender || '未知性别'}，${patient.phone || '无电话'}`;
-          }
-          
-          await initScoreView();
-          await loadScoreHistory();
-        }
-      }
-      
-      if (delBtn) {
-        const id = delBtn.getAttribute('data-id');
-        if (!id) {
-          showMessage('无法获取患者ID，请刷新页面后重试', 'warning');
-          return;
-        }
-        if (!confirm('确定删除该患者及其全部评估记录？此操作不可恢复！')) return;
-        
-        try {
-          await api(`/api/patients/${id}`, { method: 'DELETE' });
-          showMessage('删除成功', 'success');
-          refreshPatients();
-          refreshDashboard();
-        } catch (e) {
-          showMessage('删除失败: ' + e.message, 'error');
-        }
-      }
-    };
+    // 注意：tbody.onclick 事件处理器已被 patch-refresh-patients.js 禁用
+    // 补丁文件会重新绑定按钮事件，请勿在此处添加事件处理器
+    tbody.onclick = null; // 禁用原始事件处理器
     
   } catch (e) {
     console.error('刷新患者列表失败:', e);
@@ -1658,72 +1747,9 @@ async function refreshPatientsByLevel(levelId) {
     });
     
     // 绑定事件（与refreshPatients相同）
-    tbody.onclick = async (e) => {
-      const editBtn = e.target.closest('.btn-edit');
-      const scoreBtn = e.target.closest('.btn-score');
-      const delBtn = e.target.closest('.btn-del');
-      
-      if (editBtn) {
-        const patientId = editBtn.getAttribute('data-id');
-        console.log('[DEBUG] 分级视图 - 点击编辑按钮, data-id =', patientId);
-        
-        let patient = filtered.find(x => x.id === patientId);
-        if (!patient && patientId) {
-          patient = filtered.find(x => x.patientNo === patientId);
-        }
-        if (!patient && !patientId) {
-          const tr = editBtn.closest('tr');
-          if (tr) {
-            const firstTd = tr.querySelector('td');
-            if (firstTd) {
-              const pNo = firstTd.textContent.trim();
-              patient = filtered.find(x => x.patientNo === pNo || x.id === pNo);
-            }
-          }
-        }
-        
-        console.log('[DEBUG] 分级视图 - 查找患者:', patient ? `找到: ${patient.name}` : '未找到');
-        if (patient) openPatientModal(patient);
-        else showMessage('无法找到该患者数据，请刷新页面后重试', 'warning');
-      }
-      
-      if (scoreBtn) {
-        const patient = filtered.find(x => x.id === scoreBtn.getAttribute('data-id'));
-        if (patient) {
-          show('score');
-          const sInput = document.getElementById('score-patient-search');
-          const pIdInput = document.getElementById('score-patient-id');
-          const pInfoDiv = document.getElementById('score-patient-info');
-          
-          if (sInput) sInput.value = patient.name;
-          if (pIdInput) pIdInput.value = patient.id;
-          if (pInfoDiv) {
-            pInfoDiv.textContent = `已选择：${patient.name}，${patient.gender || '未知性别'}，${patient.phone || '无电话'}`;
-          }
-          
-          await initScoreView();
-          await loadScoreHistory();
-        }
-      }
-      
-      if (delBtn) {
-        const id = delBtn.getAttribute('data-id');
-        if (!id) {
-          showMessage('无法获取患者ID，请刷新页面后重试', 'warning');
-          return;
-        }
-        if (!confirm('确定删除该患者及其全部评估记录？此操作不可恢复！')) return;
-        
-        try {
-          await api(`/api/patients/${id}`, { method: 'DELETE' });
-          showMessage('删除成功', 'success');
-          refreshPatients();
-          refreshDashboard();
-        } catch (e) {
-          showMessage('删除失败: ' + e.message, 'error');
-        }
-      }
-    };
+    // 注意：tbody.onclick 事件处理器已被 patch-refresh-patients.js 禁用
+    // 补丁文件会重新绑定按钮事件，请勿在此处添加事件处理器
+    tbody.onclick = null; // 禁用原始事件处理器
     
   } catch (e) {
     console.error('按分级筛选患者失败:', e);
@@ -1780,6 +1806,9 @@ function openPatientModal(p) {
   if (pmFreq) pmFreq.value = (p && p.assessmentFrequencyDays != null) ? p.assessmentFrequencyDays : '';
   if (pmIdCardError) pmIdCardError.classList.add('hidden');
   
+  // 加载患者数据后，自动计算并显示年龄
+  updateAgeDisplay();
+  
   // 编辑患者时，身份证号码设为只读
   if (pmIdCard) {
     if (p && p.idCard) {
@@ -1791,20 +1820,62 @@ function openPatientModal(p) {
     }
   }
   
-  // 身份证号输入事件：自动填充出生日期和性别
+  // 身份证号输入事件：自动填充出生日期、性别和计算年龄，同时实时校验
   if (pmIdCard) {
     pmIdCard.oninput = function() {
       const idCard = this.value.trim();
-      if (idCard.length === 18) {
-        const birthYear = idCard.substring(6, 10);
-        const birthMonth = idCard.substring(10, 12);
-        const birthDay = idCard.substring(12, 14);
-        
-        if (pmBirth) pmBirth.value = `${birthYear}-${birthMonth}-${birthDay}`;
-        
-        const genderCode = parseInt(idCard.substring(16, 17));
-        if (pmGender) pmGender.value = genderCode % 2 === 1 ? '男' : '女';
+      const pmIdCardError = document.getElementById('pm-idcard-error');
+      
+      // 实时校验身份证号码
+      if (idCard.length > 0 && idCard.length < 18) {
+        // 位数不足时显示提示
+        const remaining = 18 - idCard.length;
+        if (pmIdCardError) {
+          pmIdCardError.textContent = `还需输入${remaining}位（当前${idCard.length}位）`;
+          pmIdCardError.classList.remove('hidden');
+        }
+      } else if (idCard.length === 18) {
+        // 位数正好18位时进行严格校验
+        const validation = validateIdCardStrict(idCard);
+        if (!validation.valid) {
+          if (pmIdCardError) {
+            pmIdCardError.textContent = validation.error;
+            pmIdCardError.classList.remove('hidden');
+          }
+        } else {
+          if (pmIdCardError) {
+            pmIdCardError.classList.add('hidden');
+          }
+          // 自动填充出生日期和性别
+          const birthYear = idCard.substring(6, 10);
+          const birthMonth = idCard.substring(10, 12);
+          const birthDay = idCard.substring(12, 14);
+          
+          if (pmBirth) pmBirth.value = `${birthYear}-${birthMonth}-${birthDay}`;
+          
+          const genderCode = parseInt(idCard.substring(16, 17));
+          if (pmGender) pmGender.value = genderCode % 2 === 1 ? '男' : '女';
+        }
+      } else {
+        // 清空时隐藏错误提示
+        if (pmIdCardError) {
+          pmIdCardError.classList.add('hidden');
+        }
       }
+      
+      // 自动计算并显示年龄
+      updateAgeDisplay();
+    };
+  }
+  
+  // 出生日期输入事件：自动计算年龄
+  if (pmBirth) {
+    pmBirth.oninput = function() {
+      updateAgeDisplay();
+    };
+    // 也要处理日期选择器变化
+    pmBirth.onchange = function() {
+      updateAgeDisplay();
     };
   }
   
@@ -1824,15 +1895,40 @@ async function savePatient() {
   console.log('[DEBUG] savePatient() 被调用, pm-id =', id || '(空)', ', currentEditingPatientId =', currentEditingPatientId || '(空)', ', effectiveId =', effectiveId || '(空，将创建新患者)');
   
   const idCard = document.getElementById('pm-idcard')?.value?.trim();
+  const pmIdCardField = document.getElementById('pm-idcard');
+  const pmIdCardError = document.getElementById('pm-idcard-error');
   
-  // 验证身份证号
-  if (idCard && !validateIdCard(idCard)) {
-    const errorEl = document.getElementById('pm-idcard-error');
-    if (errorEl) errorEl.classList.remove('hidden');
-    return;
+  // 严格校验身份证号
+  if (idCard) {
+    const validation = validateIdCardStrict(idCard);
+    if (!validation.valid) {
+      // 显示错误消息
+      showMessage(validation.error, 'error');
+      
+      // 显示错误提示
+      if (pmIdCardError) {
+        pmIdCardError.textContent = validation.error;
+        pmIdCardError.classList.remove('hidden');
+      }
+      
+      // 自动聚焦到身份证号码输入框
+      if (pmIdCardField) {
+        pmIdCardField.focus();
+        pmIdCardField.select(); // 选中文本便于重新输入
+      }
+      
+      return; // 阻止保存
+    } else {
+      // 校验通过，隐藏错误提示
+      if (pmIdCardError) {
+        pmIdCardError.classList.add('hidden');
+      }
+    }
   } else {
-    const errorEl = document.getElementById('pm-idcard-error');
-    if (errorEl) errorEl.classList.add('hidden');
+    // 隐藏错误提示
+    if (pmIdCardError) {
+      pmIdCardError.classList.add('hidden');
+    }
   }
   
   const body = {
@@ -1844,7 +1940,6 @@ async function savePatient() {
     firstDialysisDate: document.getElementById('pm-firstDialysis')?.value || '',
     height: document.getElementById('pm-height')?.value || '',
     dryWeight: document.getElementById('pm-dryWeight')?.value || '',
-    preWeight: document.getElementById('pm-preWeight')?.value || '',
     dialysisFreq: document.getElementById('pm-dialysisFreq')?.value?.trim() || '',
     notes: document.getElementById('pm-notes')?.value || '',
     assessmentFrequencyDays: document.getElementById('pm-freq')?.value || '',
@@ -1853,6 +1948,43 @@ async function savePatient() {
   if (!body.name) {
     showMessage('请填写患者姓名', 'warning');
     return;
+  }
+  
+  if (!body.phone) {
+    showMessage('请填写联系电话', 'warning');
+    return;
+  }
+  
+  if (!body.firstDialysisDate) {
+    showMessage('请填写首次透析日期', 'warning');
+    return;
+  }
+  
+  // 校验首次透析日期：不能早于出生日期，不能晚于当前系统日期
+  const birthDate = document.getElementById('pm-birth')?.value;
+  const firstDialysisDate = body.firstDialysisDate;
+  
+  if (birthDate && firstDialysisDate) {
+    const birthDateObj = new Date(birthDate);
+    const firstDialysisDateObj = new Date(firstDialysisDate);
+    const today = new Date();
+    
+    // 清空时间部分，只比较日期
+    birthDateObj.setHours(0, 0, 0, 0);
+    firstDialysisDateObj.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    
+    // 检查首次透析日期是否早于出生日期
+    if (firstDialysisDateObj < birthDateObj) {
+      showMessage('首次透析日期不能早于患者出生日期', 'warning');
+      return;
+    }
+    
+    // 检查首次透析日期是否晚于当前系统日期
+    if (firstDialysisDateObj > today) {
+      showMessage('首次透析日期不能晚于当前系统日期', 'warning');
+      return;
+    }
   }
   
   try {
@@ -3095,11 +3227,12 @@ async function exportPatientTemplate() {
  */
 async function refreshReminders() {
   try {
-    const res = await api('/api/reminders');
+    // 添加时间戳防止缓存
+    const res = await api('/api/reminders?_t=' + Date.now());
     let assessments = [];
     
     try {
-      assessments = await api('/api/assessments');
+      assessments = await api('/api/assessments?_t=' + Date.now());
     } catch (e) {
       console.error('获取评估记录失败:', e);
     }
@@ -3124,12 +3257,14 @@ async function refreshReminders() {
         res.overdue.forEach(r => {
           const la = latestAssessmentMap[r.patient?.id];
           const tr = document.createElement('tr');
+          // 优先使用患者的最新评估级别（已从后端重新计算），其次使用评估记录中的级别
+          const currentLevelId = r.patient?.lastLevelId || (la ? la.levelId : '');
           tr.innerHTML = `
             <td>${escapeHtml(r.patient?.name || '—')}</td>
-            <td>${escapeHtml(levelDisplayName(la ? la.levelId : r.patient?.lastLevelId))}</td>
+            <td>${escapeHtml(levelDisplayName(currentLevelId))}</td>
             <td>${la ? la.totalScore : '—'}</td>
             <td class="tag-overdue">${formatDate(r.dueAt)}</td>
-            <td>逾期${-r.daysLeft}天</td>
+            <td>逾期${r.daysLeft > 0 ? r.daysLeft : Math.abs(r.daysLeft)}天</td>
           `;
           tb1.appendChild(tr);
         });
@@ -3147,9 +3282,11 @@ async function refreshReminders() {
         res.upcoming.forEach(r => {
           const la = latestAssessmentMap[r.patient?.id];
           const tr = document.createElement('tr');
+          // 优先使用患者的最新评估级别（已从后端重新计算），其次使用评估记录中的级别
+          const currentLevelId = r.patient?.lastLevelId || (la ? la.levelId : '');
           tr.innerHTML = `
             <td>${escapeHtml(r.patient?.name || '—')}</td>
-            <td>${escapeHtml(levelDisplayName(la ? la.levelId : r.patient?.lastLevelId))}</td>
+            <td>${escapeHtml(levelDisplayName(currentLevelId))}</td>
             <td>${la ? la.totalScore : '—'}</td>
             <td>${formatDate(r.dueAt)}</td>
             <td>剩余${r.daysLeft}天</td>
@@ -3239,7 +3376,8 @@ async function refreshAdminUsers() {
         const tr = document.createElement('tr');
         tr.setAttribute('data-admin-user', u.id);
         
-        const p = u.permissions || {};
+        // 解析权限JSON字符串（后端返回的是字符串）
+        const p = (typeof u.permissions === 'string' ? JSON.parse(u.permissions) : u.permissions) || {};
         const cells = PERM_KEYS.map(key => 
           `<td class="tc"><input type="checkbox" data-p="${key}" ${p[key] !== false ? 'checked' : ''} ${u.status !== 'active' ? 'disabled' : ''}></td>`
         ).join('');
@@ -3370,89 +3508,6 @@ async function refreshSettings() {
     return;
   }
   
-  // 渲染患者字段设置
-  const fieldsList = document.getElementById('settings-fields-list');
-  if (fieldsList) {
-    fieldsList.innerHTML = '';
-    
-    const defaultFields = [
-      { id: 'name', name: '姓名', required: true },
-      { id: 'gender', name: '性别' },
-      { id: 'birthDate', name: '出生日期' },
-      { id: 'phone', name: '联系电话' },
-      { id: 'idCard', name: '身份证', required: true },
-      { id: 'firstDialysisDate', name: '首次透析日期' },
-      { id: 'height', name: '身高' },
-      { id: 'dryWeight', name: '干体重' },
-      { id: 'preWeight', name: '透前体重' },
-      { id: 'dialysisFreq', name: '透析频次' },
-      { id: 'notes', name: '备注' }
-    ];
-    
-    let savedFields = [];
-    try {
-      savedFields = await api('/api/settings/patient-fields');
-    } catch (e) {
-      console.error('加载患者字段设置失败:', e);
-    }
-    
-    const fieldMap = new Map();
-    defaultFields.forEach(f => fieldMap.set(f.id, { ...f, enabled: true }));
-    savedFields.forEach(f => { 
-      if (fieldMap.has(f.id)) {
-        fieldMap.get(f.id).required = f.required;
-      } else {
-        fieldMap.set(f.id, { ...f, enabled: true });
-      }
-    });
-    
-    fieldMap.forEach((f, id) => {
-      const item = document.createElement('div');
-      item.className = 'field-item';
-      item.style.cssText = 'padding: 8px 12px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px;';
-      
-      item.innerHTML = `
-        <input type="checkbox" ${f.enabled ? 'checked' : ''} data-field="${id}" style="margin-right: 8px;">
-        <span style="flex: 1;">${escapeHtml(f.name)}</span>
-        <label style="font-size: 0.85rem; color: #666;">
-          <input type="checkbox" class="field-required" data-field="${id}" ${f.required ? 'checked' : ''}> 必填
-        </label>
-        ${id.startsWith('custom_') ? '<button type="button" class="btn danger btn-remove-field" style="padding: 4px 8px; font-size: 0.85rem;">删除</button>' : ''}
-      `;
-      
-      fieldsList.appendChild(item);
-    });
-    
-    // 保存字段设置按钮
-    const saveBtn = document.createElement('button');
-    saveBtn.className = 'btn';
-    saveBtn.textContent = '保存字段设置';
-    saveBtn.style.marginTop = '12px';
-    saveBtn.onclick = async () => {
-      const fields = Array.from(fieldsList.querySelectorAll('.field-item')).map(item => {
-        const cb = item.querySelector('input[type="checkbox"]:not(.field-required)');
-        const fieldId = cb?.getAttribute('data-field');
-        const fieldName = item.querySelector('span')?.textContent?.trim() || '';
-        const required = item.querySelector('.field-required')?.checked || false;
-        const enabled = cb?.checked || false;
-        
-        return { id: fieldId, name: fieldName, required, enabled };
-      });
-      
-      try {
-        await api('/api/settings/patient-fields', { 
-          method: 'POST', 
-          body: JSON.stringify(fields) 
-        });
-        showMessage('保存成功', 'success');
-      } catch (e) {
-        showMessage('保存失败: ' + e.message, 'error');
-      }
-    };
-    
-    fieldsList.appendChild(saveBtn);
-  }
-  
   // 渲染评分级别设置
   const levelsList = document.getElementById('settings-levels-list');
   if (levelsList) {
@@ -3515,6 +3570,8 @@ async function refreshSettings() {
           });
           showMessage('更新成功', 'success');
           await refreshSettings();
+          // 刷新评估提醒数据
+          await refreshReminders();
         } catch (e) {
           showMessage('更新失败: ' + e.message, 'error');
         }
@@ -3595,6 +3652,30 @@ function initEventBindings() {
         showMessage('已退出登录', 'info');
       } catch (e) {
         console.error('登出失败:', e);
+      }
+    };
+  }
+  
+  // 仪表盘刷新按钮
+  const refreshDashboardBtn = document.getElementById('btn-refresh-dashboard');
+  if (refreshDashboardBtn) {
+    refreshDashboardBtn.onclick = async () => {
+      const btn = document.getElementById('btn-refresh-dashboard');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '🔄 刷新中...';
+      }
+      
+      try {
+        await refreshDashboard();
+        showMessage('仪表盘数据已刷新', 'success');
+      } catch (e) {
+        showMessage('刷新失败: ' + e.message, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🔄 刷新数据';
+        }
       }
     };
   }
@@ -3736,8 +3817,13 @@ function initEventBindings() {
   const statDoctors = document.getElementById('stat-doctors');
   if (statDoctors) {
     statDoctors.addEventListener('click', () => {
-      show('admin');
-      refreshAdminUsers();
+      // 只有管理员才能访问用户审核页面
+      if (me && me.role === 'admin') {
+        show('admin');
+        refreshAdminUsers();
+      } else {
+        showMessage('您没有权限访问用户审核页面', 'error');
+      }
     });
   }
   
@@ -3898,36 +3984,6 @@ function initEventBindings() {
   });
   
   // 添加字段按钮
-  const addFieldBtn = document.getElementById('btn-add-field');
-  if (addFieldBtn) {
-    addFieldBtn.addEventListener('click', () => {
-      const name = prompt('新字段名称');
-      if (!name) return;
-      
-      const id = 'custom_' + Date.now();
-      const fieldsList = document.getElementById('settings-fields-list');
-      
-      if (fieldsList) {
-        const item = document.createElement('div');
-        item.className = 'field-item';
-        item.style.cssText = 'padding: 8px 12px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px;';
-        
-        item.innerHTML = `
-          <input type="checkbox" checked data-field="${id}" style="margin-right: 8px;">
-          <span style="flex: 1;">${escapeHtml(name)}</span>
-          <label style="font-size: 0.85rem; color: #666;">
-            <input type="checkbox" class="field-required" data-field="${id}"> 必填
-          </label>
-          <button type="button" class="btn danger btn-remove-field" style="padding: 4px 8px; font-size: 0.85rem;">删除</button>
-        `;
-        
-        // 绑定删除按钮
-        item.querySelector('.btn-remove-field').onclick = () => item.remove();
-        
-        fieldsList.appendChild(item);
-      }
-    });
-  }
   
   // 添加级别按钮
   const addLevelBtn = document.getElementById('btn-add-level');
@@ -3953,6 +4009,8 @@ function initEventBindings() {
         });
         showMessage('添加成功', 'success');
         await refreshSettings();
+        // 刷新评估提醒数据
+        await refreshReminders();
       } catch (e) {
         showMessage('添加失败: ' + e.message, 'error');
       }

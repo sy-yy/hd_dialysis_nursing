@@ -651,29 +651,29 @@
     {
       "id": "low",
       "name": "绿色（低危）",
-      "color": "#2e7d32",
-      "maxScore": 15,
-      "description": "总分 0~15：常规宣教与标准护理路径",
-      "defaultFrequencyDays": 25,
+      "color": "#2ecc71",
+      "maxScore": 30,
+      "description": "常规宣教与标准护理路径",
+      "defaultFrequencyDays": 90,
       "minScore": 0
     },
     {
       "id": "medium",
       "name": "黄色（中危）",
-      "color": "#f9a825",
-      "minScore": 16,
-      "maxScore": 30,
-      "description": "总分 16~30：加强观察、个体化护理计划",
+      "color": "#f1c40f",
+      "minScore": 31,
+      "maxScore": 60,
+      "description": "加强观察、个体化护理计划",
       "defaultFrequencyDays": 15
     },
     {
       "id": "high",
       "name": "红色（高危）",
-      "color": "#c62828",
-      "minScore": 31,
-      "maxScore": 100,
-      "description": "总分 ≥31：重点床旁/全程监护与多学科管理",
-      "defaultFrequencyDays": 5
+      "color": "#e74c3c",
+      "minScore": 61,
+      "maxScore": 104,
+      "description": "重点床旁/全程监护与多学科管理",
+      "defaultFrequencyDays": 7
     }
   ]
 }

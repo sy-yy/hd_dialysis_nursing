@@ -418,6 +418,55 @@ function getPinyinInitialSimple(str) {
   return result;
 }
 
+// ==================== 年龄计算函数 ====================
+/**
+ * 根据出生日期或身份证号计算年龄
+ * @param {Object} patient - 患者对象
+ * @returns {number|null} 年龄（岁），无法计算返回null
+ */
+function calculateAge(patient) {
+  let birthDate = null;
+  
+  // 优先使用 birthDate 字段
+  if (patient.birthDate && patient.birthDate.trim() !== '') {
+    birthDate = new Date(patient.birthDate);
+  }
+  // 如果没有 birthDate，尝试从身份证号提取
+  else if (patient.idCard && patient.idCard.trim() !== '') {
+    const idCard = patient.idCard.trim();
+    // 18位身份证：第7-14位是YYYYMMDD
+    if (idCard.length === 18 || idCard.length === 15) {
+      let year, month, day;
+      if (idCard.length === 18) {
+        year = parseInt(idCard.substring(6, 10));
+        month = parseInt(idCard.substring(10, 12)) - 1; // JS月份从0开始
+        day = parseInt(idCard.substring(12, 14));
+      } else {
+        // 15位身份证：第7-12位是YYMMDD（需要加上19）
+        year = 1900 + parseInt(idCard.substring(6, 8));
+        month = parseInt(idCard.substring(8, 10)) - 1;
+        day = parseInt(idCard.substring(10, 12));
+      }
+      birthDate = new Date(year, month, day);
+    }
+  }
+  
+  if (!birthDate || isNaN(birthDate.getTime())) {
+    return null;
+  }
+  
+  // 计算年龄
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  // 如果今年还没过生日，年龄减1
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age >= 0 ? age : null;
+}
 // ==================== 应用初始化 ====================
 const port = process.env.PORT || 3081;
 const host = process.env.HOST || '0.0.0.0';
@@ -684,7 +733,8 @@ app.post('/api/rubric/levels', requireAuth, requireAdmin, async (req, res) => {
       minScore: body.minScore || 0,
       maxScore: body.maxScore || 100,
       defaultFrequencyDays: body.defaultFrequencyDays || 30,
-      color: body.color || '#999'
+      color: body.color || '#999',
+      description: body.description || ''
     };
     
     rubric.levelRules = rubric.levelRules || [];
@@ -717,7 +767,8 @@ app.put('/api/rubric/levels/:id', requireAuth, requireAdmin, async (req, res) =>
       minScore: body.minScore != null ? body.minScore : rubric.levelRules[levelIndex].minScore,
       maxScore: body.maxScore != null ? body.maxScore : rubric.levelRules[levelIndex].maxScore,
       defaultFrequencyDays: body.defaultFrequencyDays != null ? body.defaultFrequencyDays : rubric.levelRules[levelIndex].defaultFrequencyDays,
-      color: body.color || rubric.levelRules[levelIndex].color
+      color: body.color || rubric.levelRules[levelIndex].color,
+      description: body.description !== undefined ? body.description : rubric.levelRules[levelIndex].description
     };
     
     await rubricLib.saveRubric(rubric);
@@ -743,6 +794,10 @@ app.delete('/api/rubric/levels/:id', requireAuth, requireAdmin, async (req, res)
     }
     
     await rubricLib.saveRubric(rubric);
+    
+    // 重新计算所有患者的评估时间
+    await recalculateAllPatientsNextAssessmentDue();
+    
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '删除评分级别失败' });
@@ -791,9 +846,17 @@ app.post('/api/auth/register', async (req, res) => {
   if (String(username).length < 2 || String(password).length < 6) {
     return res.status(400).json({ error: '用户名至少2字符，密码至少6位' });
   }
+  
+  // 检查用户名是否已存在
+  const trimmedUsername = String(username).trim();
+  const existingUser = await store.getUserByUsername(trimmedUsername);
+  if (existingUser) {
+    return res.status(400).json({ error: '用户名已被占用，请选择其他用户名' });
+  }
+  
   const passwordHash = await bcrypt.hash(String(password), 10);
   const result = await store.createPendingDoctor({
-    username: String(username).trim(),
+    username: trimmedUsername,
     passwordHash,
     displayName: displayName ? String(displayName).trim() : '',
   });
@@ -1119,11 +1182,93 @@ app.get('/api/patients', requireAuth, requirePatientAccess, async (req, res) => 
   res.json(list);
 });
 
+// 新版API：返回患者列表及其最新评估信息（动态计算，不存储）
+app.get('/api/patients/with-assessments', requireAuth, requirePatientAccess, async (req, res) => {
+  try {
+    const patients = await store.listPatients();
+    const rubric = await rubricLib.loadRubric();
+    
+    const result = await Promise.all(patients.map(async (patient) => {
+      // 获取患者的最新评估记录
+      const assessments = await store.listAssessmentsForPatient(patient.id);
+      let latestScore = null;
+      let lastLevelId = null;
+      let lastAssessmentAt = null;
+      let nextAssessmentDue = null;
+      
+      if (assessments && assessments.length > 0) {
+        // 按评估时间排序，获取最新的评估记录
+        assessments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const latestAssessment = assessments[0];
+        
+        // 重新计算评分结果
+        const scoreResult = rubricLib.scoreFromAnswers(rubric, JSON.parse(latestAssessment.answers || '{}'));
+        latestScore = scoreResult.totalScore;
+        
+        // 重新确定评估级别
+        const level = rubricLib.resolveLevel(rubric, latestScore);
+        lastLevelId = level.id;
+        
+        // 计算下次评估时间
+        const freqDays = rubricLib.frequencyDaysForLevel(rubric, level, patient);
+        nextAssessmentDue = rubricLib.nextDueIso(latestAssessment.createdAt, freqDays);
+        lastAssessmentAt = latestAssessment.createdAt;
+      }
+      
+      return {
+        id: patient.id || patient._id,  // 确保返回 id 字段
+        age: calculateAge(patient),  // 自动计算年龄
+        ...patient,
+        latestScore,
+        lastLevelId,
+        lastAssessmentAt,
+        nextAssessmentDue,
+      };
+    }));
+    
+    result.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+    res.json(result);
+  } catch (e) {
+    console.error('获取患者评估信息失败:', e);
+    res.status(500).json({ error: '获取患者评估信息失败' });
+  }
+});
+
 app.post('/api/patients', requireAuth, requirePerm('managePatients'), async (req, res) => {
   const u = await currentUser(req);
   const body = req.body || {};
   const name = String(body.name || '').trim();
   if (!name) return res.status(400).json({ error: '请填写患者姓名' });
+  
+  if (!body.phone || !body.phone.trim()) {
+    return res.status(400).json({ error: '请填写联系电话' });
+  }
+  
+  if (!body.firstDialysisDate) {
+    return res.status(400).json({ error: '请填写首次透析日期' });
+  }
+  
+  // 校验首次透析日期：不能早于出生日期，不能晚于当前系统日期
+  if (body.firstDialysisDate) {
+    const birthDate = body.birthDate ? new Date(body.birthDate) : null;
+    const firstDialysisDate = new Date(body.firstDialysisDate);
+    const today = new Date();
+    
+    // 清空时间部分，只比较日期
+    if (birthDate) birthDate.setHours(0, 0, 0, 0);
+    firstDialysisDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    
+    // 检查首次透析日期是否早于出生日期
+    if (birthDate && firstDialysisDate < birthDate) {
+      return res.status(400).json({ error: '首次透析日期不能早于患者出生日期' });
+    }
+    
+    // 检查首次透析日期是否晚于当前系统日期
+    if (firstDialysisDate > today) {
+      return res.status(400).json({ error: '首次透析日期不能晚于当前系统日期' });
+    }
+  }
   
   // 检查身份证号码是否重复
   if (body.idCard) {
@@ -1199,10 +1344,59 @@ app.put('/api/patients/:id', requireAuth, requirePerm('managePatients'), async (
   console.log('[DEBUG] PUT /api/patients/:id - 请求体:', JSON.stringify(req.body));
   
   const body = req.body || {};
+  
+  // 验证必填字段
+  if (body.name != null && !String(body.name).trim()) {
+    return res.status(400).json({ error: '患者姓名不能为空' });
+  }
+  if (body.phone != null && !body.phone.trim()) {
+    return res.status(400).json({ error: '联系电话不能为空' });
+  }
+  if (body.firstDialysisDate != null && !body.firstDialysisDate) {
+    return res.status(400).json({ error: '首次透析日期不能为空' });
+  }
+  
+  // 校验首次透析日期：不能早于出生日期，不能晚于当前系统日期
+  const checkFirstDialysisDate = body.firstDialysisDate != null ? body.firstDialysisDate : p.firstDialysisDate;
+  const checkBirthDate = body.birthDate != null ? body.birthDate : p.birthDate;
+  
+  if (checkFirstDialysisDate) {
+    const birthDate = checkBirthDate ? new Date(checkBirthDate) : null;
+    const firstDialysisDate = new Date(checkFirstDialysisDate);
+    const today = new Date();
+    
+    // 清空时间部分，只比较日期
+    if (birthDate) birthDate.setHours(0, 0, 0, 0);
+    firstDialysisDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    
+    // 检查首次透析日期是否早于出生日期
+    if (birthDate && firstDialysisDate < birthDate) {
+      return res.status(400).json({ error: '首次透析日期不能早于患者出生日期' });
+    }
+    
+    // 检查首次透析日期是否晚于当前系统日期
+    if (firstDialysisDate > today) {
+      return res.status(400).json({ error: '首次透析日期不能晚于当前系统日期' });
+    }
+  }
+  
   if (body.name != null) p.name = String(body.name).trim() || p.name;
   // 不允许修改身份证号码、id和patientNo
   if (body.id !== undefined) delete body.id;
   if (body.patientNo !== undefined) delete body.patientNo;
+  
+  // 检查身份证号码是否重复（更新时允许保持原身份证号码）
+  if (body.idCard && body.idCard !== p.idCard) {
+    const existingPatients = await store.listPatients();
+    const duplicateIdCard = existingPatients.find(existing => 
+      existing.idCard === body.idCard && existing.id !== p.id
+    );
+    if (duplicateIdCard) {
+      return res.status(400).json({ error: '该身份证号码已存在，不能重复使用' });
+    }
+  }
+  
   ['gender', 'birthDate', 'phone', 'dialysisId', 'bedNo', 'firstDialysisDate', 'height', 'dryWeight', 'preWeight', 'notes'].forEach((k) => {
     if (body[k] != null) p[k] = body[k];
   });
@@ -1235,7 +1429,7 @@ app.put('/api/patients/:id', requireAuth, requirePerm('managePatients'), async (
   res.json(p);
 });
 
-app.delete('/api/patients/:id', requireAuth, requireAdmin, async (req, res) => {
+app.delete('/api/patients/:id', requireAuth, requirePerm('deletePatients'), async (req, res) => {
   const u = await currentUser(req);
   const p = await store.getPatient(req.params.id);
   if (!p) return res.status(404).json({ error: '患者不存在' });
@@ -1289,7 +1483,7 @@ app.post(
   requirePerm('importPatients'),
   requirePerm('managePatients'),
   upload.single('file'),
-  (req, res) => {
+  async (req, res) => {
   const u = currentUser(req);
   if (!req.file) return res.status(400).json({ error: '请上传 Excel 文件（.xlsx / .xls）' });
 
@@ -1321,6 +1515,10 @@ app.post(
 
   const imported = [];
   const errors = [];
+  
+  // 获取所有现有患者，用于检查身份证号码重复
+  const existingPatients = await store.listPatients();
+  
   for (let i = 0; i < rows.length; i++) {
     const raw = rows[i];
     const picked = pickRow(raw, keyMap);
@@ -1329,6 +1527,16 @@ app.post(
       errors.push({ row: i + 2, message: '缺少姓名' });
       continue;
     }
+    
+    // 检查身份证号码是否重复
+    if (picked.idCard) {
+      const duplicateIdCard = existingPatients.find(p => p.idCard === picked.idCard);
+      if (duplicateIdCard) {
+        errors.push({ row: i + 2, message: `身份证号码已存在（患者：${duplicateIdCard.name}）` });
+        continue;
+      }
+    }
+    
     const patient = {
       id: store.generatePatientId(),
       name,
@@ -1482,19 +1690,59 @@ app.post('/api/patients/:id/assessments', requireAuth, requirePerm('scorePatient
 });
 
 app.get('/api/reminders', requireAuth, requirePerm('viewDashboard'), async (req, res) => {
+  console.log('[DEBUG] /api/reminders 被调用');
   const patients = await store.listPatients();
   const now = Date.now();
   const overdue = [];
   const upcoming = [];
+  
+  // 动态重新计算所有患者的nextAssessmentDue
+  const rubric = await rubricLib.loadRubric();
+  console.log(`[DEBUG] 加载评分规则，共 ${rubric.levelRules?.length || 0} 个级别`);
+  
   for (const p of patients) {
+    // 获取患者的最新评估记录
+    const assessments = await store.listAssessmentsForPatient(p.id);
+    if (assessments && assessments.length > 0) {
+      // 按评估时间排序，获取最新的评估记录
+      assessments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const latestAssessment = assessments[0];
+      console.log(`[DEBUG] 患者 ${p.name} (id=${p.id}): 找到 ${assessments.length} 条评估记录, 最新记录id=${latestAssessment.id}`);
+      
+      // 重新计算评分结果
+      const { totalScore } = rubricLib.scoreFromAnswers(rubric, JSON.parse(latestAssessment.answers));
+      
+      // 重新确定评估级别
+      const newLevel = rubricLib.resolveLevel(rubric, totalScore);
+      
+      console.log(`[DEBUG] 患者 ${p.name} (id=${p.id}): 总分=${totalScore}, 旧级别=${p.lastLevelId}, 新级别=${newLevel?.id}`);
+      
+      // 计算新的评估频率和下次评估时间
+      const freqDays = rubricLib.frequencyDaysForLevel(rubric, newLevel, p);
+      const nextDue = rubricLib.nextDueIso(new Date(latestAssessment.createdAt), freqDays);
+      
+      // 更新患者的nextAssessmentDue和lastLevelId
+      p.nextAssessmentDue = nextDue;
+      p.lastLevelId = newLevel?.id || p.lastLevelId;
+      p.lastAssessmentAt = p.lastAssessmentAt || latestAssessment.createdAt;
+      await store.savePatient(p);
+      console.log(`[DEBUG] 患者 ${p.name} 已更新: lastLevelId=${p.lastLevelId}, nextAssessmentDue=${p.nextAssessmentDue}`);
+    } else {
+      console.log(`[DEBUG] 患者 ${p.name} (id=${p.id}) 无评估记录，跳过重新计算`);
+    }
+    
     if (!p.nextAssessmentDue) continue;
     const t = new Date(p.nextAssessmentDue).getTime();
-    const item = { patient: summarizePatient(p), dueAt: p.nextAssessmentDue, daysLeft: Math.ceil((t - now) / (24 * 60 * 60 * 1000)) };
+    const patientSummary = summarizePatient(p);
+    console.log(`[DEBUG] 患者 ${p.name} 的 summarizePatient 结果:`, patientSummary);
+    const item = { patient: patientSummary, dueAt: p.nextAssessmentDue, daysLeft: Math.ceil((t - now) / (24 * 60 * 60 * 1000)) };
     if (t < now) overdue.push(item);
     else upcoming.push(item);
   }
+  
   overdue.sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
   upcoming.sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+  console.log(`[DEBUG] /api/reminders 返回: ${overdue.length} 个逾期, ${upcoming.length} 个待评`);
   res.json({ overdue, upcoming });
 });
 

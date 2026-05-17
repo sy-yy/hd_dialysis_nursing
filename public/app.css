@@ -231,12 +231,21 @@ a:hover {
 .msg-error {
   background: var(--danger-bg);
   color: var(--danger);
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-md);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   border-left: 4px solid var(--danger);
   animation: shake 0.3s ease;
+  display: block;
+  margin-top: 4px;
+}
+
+/* 表单内的错误提示样式 */
+.form-group .msg-error {
+  margin-bottom: 0;
+  margin-top: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @keyframes shake {
@@ -1080,5 +1089,246 @@ table.data-compact input[type="checkbox"] {
 @media (max-width: 768px) {
   .sidebar-overlay.active {
     display: block;
+  }
+}
+
+/* ==================== 评分级别可视化样式 ==================== */
+
+/* 级别可视化预览容器 */
+.level-visual-preview {
+  transition: all 0.3s ease;
+}
+
+/* 分数范围条容器 */
+#level-range-bar {
+  transition: all 0.3s ease;
+}
+
+/* 分数范围条中的每个级别段 */
+.level-range-segment {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  min-width: 0; /* 防止flex项溢出 */
+}
+
+.level-range-segment:hover {
+  transform: scaleY(1.1);
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* 分数范围标签 */
+#level-range-labels {
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+#level-range-labels span {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #555;
+  padding: 4px 8px;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+#level-range-labels span:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* 级别列表项 */
+.level-item {
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.level-item:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.level-item.editing {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+/* 级别颜色指示器 */
+.level-color-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  flex-shrink: 0;
+}
+
+/* 级别信息展示 */
+.level-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.level-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.level-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* 级别操作按钮 */
+.level-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.level-actions .btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+/* 编辑表单 */
+.level-form {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: white;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.level-form .form-group {
+  margin-bottom: var(--spacing-sm);
+}
+
+.level-form label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.level-form input[type="text"],
+.level-form input[type="number"],
+.level-form textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease;
+}
+
+.level-form input[type="text"]:focus,
+.level-form input[type="number"]:focus,
+.level-form textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-bg);
+}
+
+.level-form textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* 颜色选择器 */
+.level-form input[type="color"] {
+  width: 50px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.level-form .color-preview {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border-light);
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+/* 表单按钮组 */
+.level-form .form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-light);
+}
+
+/* 提示信息 */
+.settings-hint {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .level-range-segment {
+    font-size: 0.75rem;
+  }
+  
+  #level-range-labels {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  #level-range-labels span {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+  }
+  
+  .level-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .level-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: var(--spacing-sm);
+  }
+  
+  .level-form {
+    padding: var(--spacing-sm);
   }
 }

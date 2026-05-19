@@ -1,0 +1,3 @@
+{"timestamp":"2026-05-19T12:38:04.014Z","level":"INFO","message":"血液透析患者分层分级管理系统已启动","data":{"port":3081,"host":"0.0.0.0","localAccess":"http://127.0.0.1:3081","lanAccess":"http://10.0.0.117:3081"}}
+{"timestamp":"2026-05-19T12:41:06.773Z","level":"INFO","message":"血液透析患者分层分级管理系统已启动","data":{"port":3081,"host":"0.0.0.0","localAccess":"http://127.0.0.1:3081","lanAccess":"http://10.0.0.117:3081"}}
+{"timestamp":"2026-05-19T12:41:21.522Z","level":"INFO","message":"登录成功","data":{"username":"admin","userId":"u_e14eb38cdae55bf0","role":"admin","ip":"127.0.0.1"}}

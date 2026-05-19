@@ -223,9 +223,9 @@
             <div class="form-group" style="max-width: 420px">
               <label for="score-patient-search">选择患者</label>
               <div style="position: relative;">
-                <input type="text" id="score-patient-search" placeholder="输入患者姓名或首拼" style="width: 100%; padding-right: 80px;" aria-label="搜索患者" />
-                <button type="button" id="score-patient-clear" style="position: absolute; right: 60px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #999; cursor: pointer; font-size: 1.2rem;" aria-label="清除搜索">×</button>
-                <button type="button" id="score-patient-submit" class="btn" style="position: absolute; right: 0; top: 0; height: 100%;" aria-label="确认选择患者">确定</button>
+                <input type="text" id="score-patient-search" placeholder="输入患者姓名或首拼" style="width: 100%; padding-right: 100px;" aria-label="搜索患者" />
+                <button type="button" id="score-patient-clear" style="position: absolute; right: 58px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #999; cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0 6px; z-index: 1;" aria-label="清除搜索">×</button>
+                <button type="button" id="score-patient-submit" class="btn" style="position: absolute; right: 0; top: 0; height: 100%; min-width: 52px;" aria-label="确认选择患者">确定</button>
               </div>
               <div id="score-patient-dropdown" style="position: absolute; max-width: 420px; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 1000; display: none;" role="listbox" aria-label="患者搜索结果"></div>
               <input type="hidden" id="score-patient-id" />
@@ -544,6 +544,20 @@
   </div>
 
   <!-- 评估详情模态框 -->
+  <!-- 导入结果详情弹窗 -->
+  <div id="import-result-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="import-result-title">
+    <div class="modal" style="max-width: 620px;">
+      <header class="modal-header">
+        <h3 id="import-result-title">导入结果</h3>
+        <button type="button" class="close" aria-label="关闭">&times;</button>
+      </header>
+      <div class="modal-body" id="import-result-content"></div>
+      <footer class="modal-actions">
+        <button type="button" class="btn secondary" id="import-result-close">关闭</button>
+      </footer>
+    </div>
+  </div>
+
   <div id="detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
     <div class="modal" style="max-width: 650px;">
       <header class="modal-header">

@@ -487,7 +487,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 访问日志中间件
+// 访问日志中间件 — 仅记录API请求，排除静态资源和高频轮询
 app.use((req, res, next) => {
   const start = Date.now();
   const originalSend = res.send;
@@ -497,22 +497,28 @@ app.use((req, res, next) => {
   };
 
   res.on('finish', () => {
+    // 仅记录API路径，排除静态资源
+    const urlPath = req.originalUrl || req.url;
+    if (!urlPath.startsWith('/api/')) return;
+    // 排除高频轮询接口（健康检查、提醒轮询等）
+    if (urlPath.match(/\/api\/(health|reminders|assessments\?)/i) && res.statusCode < 400) return;
+
     const duration = Date.now() - start;
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+    const ip = getClientIp(req);
     const userAgent = req.headers['user-agent'] || '';
 
     // 记录访问日志
     store.addLog({
       level: res.statusCode >= 400 ? 'warn' : 'info',
       method: req.method,
-      path: req.originalUrl || req.url,
+      path: urlPath,
       ip: ip,
       userId: req.session && req.session.userId || '',
       username: req.session && req.session.username || '',
       action: 'ACCESS',
       targetType: 'SYSTEM',
       targetId: '',
-      details: `${req.method} ${req.originalUrl || req.url} ${res.statusCode} - ${duration}ms`,
+      details: `${req.method} ${urlPath} ${res.statusCode} - ${duration}ms`,
       userAgent: userAgent
     });
   });
@@ -543,6 +549,19 @@ app.use(
 async function currentUser(req) {
   if (!req.session.userId) return null;
   return await store.getUserById(req.session.userId);
+}
+
+/** 统一获取客户端IP（支持代理头） */
+function getClientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.connection?.remoteAddress
+    || req.ip
+    || '';
+}
+
+/** 统一获取User-Agent */
+function getClientUA(req) {
+  return req.headers['user-agent'] || '';
 }
 
 function userHasPermission(u, key) {
@@ -743,7 +762,22 @@ app.post('/api/rubric/levels', requireAuth, requireAdmin, async (req, res) => {
     await rubricLib.saveRubric(rubric);
     
     await recalculateAllPatientsNextAssessmentDue();
-    
+
+    const u = await currentUser(req);
+    store.addLog({
+      level: 'info',
+      method: 'POST',
+      path: '/api/rubric/levels',
+      ip: getClientIp(req),
+      userId: u?.id || '',
+      username: u?.username || '',
+      action: 'CREATE',
+      targetType: 'LEVEL',
+      targetId: newLevel.id,
+      details: `新增评分级别: ${newLevel.name} (${newLevel.minScore}-${newLevel.maxScore}分)`,
+      userAgent: getClientUA(req)
+    });
+
     res.json(newLevel);
   } catch (e) {
     res.status(500).json({ error: '添加评分级别失败' });
@@ -761,6 +795,7 @@ app.put('/api/rubric/levels/:id', requireAuth, requireAdmin, async (req, res) =>
       return res.status(404).json({ error: '评分级别不存在' });
     }
     
+    const oldLevel = { ...rubric.levelRules[levelIndex] };
     rubric.levelRules[levelIndex] = {
       ...rubric.levelRules[levelIndex],
       name: body.name || rubric.levelRules[levelIndex].name,
@@ -774,7 +809,22 @@ app.put('/api/rubric/levels/:id', requireAuth, requireAdmin, async (req, res) =>
     await rubricLib.saveRubric(rubric);
     
     await recalculateAllPatientsNextAssessmentDue();
-    
+
+    const u = await currentUser(req);
+    store.addLog({
+      level: 'info',
+      method: 'PUT',
+      path: `/api/rubric/levels/${levelId}`,
+      ip: getClientIp(req),
+      userId: u?.id || '',
+      username: u?.username || '',
+      action: 'UPDATE',
+      targetType: 'LEVEL',
+      targetId: levelId,
+      details: `更新评分级别: ${oldLevel.name} → ${rubric.levelRules[levelIndex].name} (${rubric.levelRules[levelIndex].minScore}-${rubric.levelRules[levelIndex].maxScore}分)`,
+      userAgent: getClientUA(req)
+    });
+
     res.json(rubric.levelRules[levelIndex]);
   } catch (e) {
     res.status(500).json({ error: '更新评分级别失败' });
@@ -787,6 +837,7 @@ app.delete('/api/rubric/levels/:id', requireAuth, requireAdmin, async (req, res)
     const levelId = req.params.id;
     
     const initialLength = rubric.levelRules.length;
+    const deletedLevel = rubric.levelRules.find(l => l.id === levelId);
     rubric.levelRules = rubric.levelRules.filter(l => l.id !== levelId);
     
     if (rubric.levelRules.length === initialLength) {
@@ -797,7 +848,22 @@ app.delete('/api/rubric/levels/:id', requireAuth, requireAdmin, async (req, res)
     
     // 重新计算所有患者的评估时间
     await recalculateAllPatientsNextAssessmentDue();
-    
+
+    const u = await currentUser(req);
+    store.addLog({
+      level: 'warn',
+      method: 'DELETE',
+      path: `/api/rubric/levels/${levelId}`,
+      ip: getClientIp(req),
+      userId: u?.id || '',
+      username: u?.username || '',
+      action: 'DELETE',
+      targetType: 'LEVEL',
+      targetId: levelId,
+      details: `删除评分级别: ${deletedLevel?.name || levelId} (${deletedLevel?.minScore}-${deletedLevel?.maxScore}分)`,
+      userAgent: getClientUA(req)
+    });
+
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '删除评分级别失败' });
@@ -829,6 +895,20 @@ app.post('/api/settings/patient-fields', requireAuth, requireAdmin, (req, res) =
     const fields = req.body || [];
     const result = store.savePatientFields(fields);
     if (result) {
+      const u = store.getUserByIdSync?.(req.session?.userId);
+      store.addLog({
+        level: 'info',
+        method: 'POST',
+        path: '/api/settings/patient-fields',
+        ip: getClientIp(req),
+        userId: req.session?.userId || '',
+        username: req.session?.username || '',
+        action: 'UPDATE_SETTINGS',
+        targetType: 'SETTINGS',
+        targetId: '',
+        details: `保存患者字段设置，共${Array.isArray(fields) ? fields.length : 0}个字段`,
+        userAgent: getClientUA(req)
+      });
       res.json({ ok: true });
     } else {
       res.status(500).json({ error: '保存患者信息字段设置失败' });
@@ -861,6 +941,21 @@ app.post('/api/auth/register', async (req, res) => {
     displayName: displayName ? String(displayName).trim() : '',
   });
   if (!result.ok) return res.status(400).json({ error: result.error });
+
+  store.addLog({
+    level: 'info',
+    method: 'POST',
+    path: '/api/auth/register',
+    ip: getClientIp(req),
+    userId: '',
+    username: trimmedUsername,
+    action: 'REGISTER',
+    targetType: 'USER',
+    targetId: result.id || '',
+    details: `新用户注册: ${trimmedUsername}${displayName ? ' (' + String(displayName).trim() + ')' : ''}`,
+    userAgent: getClientUA(req)
+  });
+
   res.json({
     ok: true,
     message: '注册信息已提交，需管理员审核通过后方可登录系统',
@@ -870,7 +965,7 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body || {};
   const usernameStr = String(username || '').trim();
-  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+  const ip = getClientIp(req);
 
   try {
     const user = await store.getUserByUsername(usernameStr);
@@ -884,7 +979,8 @@ app.post('/api/auth/login', async (req, res) => {
         username: usernameStr,
         action: 'LOGIN_FAILED',
         targetType: 'AUTH',
-        details: '用户名或密码错误'
+        details: '用户名或密码错误',
+        userAgent: getClientUA(req)
       });
       return res.status(401).json({ error: '用户名或密码错误' });
     }
@@ -899,7 +995,8 @@ app.post('/api/auth/login', async (req, res) => {
         userId: user.id,
         action: 'LOGIN_FAILED',
         targetType: 'AUTH',
-        details: '账号待审核'
+        details: '账号待审核',
+        userAgent: getClientUA(req)
       });
       return res.status(403).json({ error: '账号待管理员审核通过后方可登录' });
     }
@@ -914,7 +1011,8 @@ app.post('/api/auth/login', async (req, res) => {
         userId: user.id,
         action: 'LOGIN_FAILED',
         targetType: 'AUTH',
-        details: '注册未通过审核'
+        details: '注册未通过审核',
+        userAgent: getClientUA(req)
       });
       return res.status(403).json({ error: '注册未通过审核' });
     }
@@ -929,7 +1027,8 @@ app.post('/api/auth/login', async (req, res) => {
         userId: user.id,
         action: 'LOGIN_FAILED',
         targetType: 'AUTH',
-        details: '账号已被禁用'
+        details: '账号已被禁用',
+        userAgent: getClientUA(req)
       });
       return res.status(403).json({ error: '账号已被禁用，请联系管理员' });
     }
@@ -945,7 +1044,8 @@ app.post('/api/auth/login', async (req, res) => {
       username: user.username,
       action: 'LOGIN_SUCCESS',
       targetType: 'AUTH',
-      details: `登录成功，角色: ${user.role}`
+      details: `登录成功，角色: ${user.role}`,
+      userAgent: getClientUA(req)
     });
     res.json({ user: serializeUser(user) });
   } catch (error) {
@@ -957,7 +1057,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/logout', (req, res) => {
   const userId = req.session.userId;
   const username = req.session.username;
-  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+  const ip = getClientIp(req);
   req.session.destroy(() => {
     logger.info('退出登录成功', { userId });
     store.addLog({
@@ -969,7 +1069,8 @@ app.post('/api/auth/logout', (req, res) => {
       username: username,
       action: 'LOGOUT',
       targetType: 'AUTH',
-      details: '用户退出登录'
+      details: '用户退出登录',
+      userAgent: getClientUA(req)
     });
     res.json({ ok: true });
   });
@@ -996,6 +1097,19 @@ app.post('/api/auth/change-password', requireAuth, async (req, res) => {
   if (!r.ok) return res.status(400).json({ error: r.error });
   
   logger.info('密码修改成功', { userId: u.id, username: u.username });
+  store.addLog({
+    level: 'info',
+    method: 'POST',
+    path: '/api/auth/change-password',
+    ip: getClientIp(req),
+    userId: u.id,
+    username: u.username,
+    action: 'CHANGE_PASSWORD',
+    targetType: 'AUTH',
+    targetId: u.id,
+    details: '用户自行修改密码',
+    userAgent: getClientUA(req)
+  });
   res.json({ ok: true, message: '密码修改成功' });
 });
 
@@ -1015,6 +1129,22 @@ app.post('/api/admin/users/:id/approve', requireAuth, requireAdmin, async (req, 
   if (u.role === 'admin') return res.status(400).json({ error: '不能审核管理员账号' });
   if (u.status !== 'pending') return res.status(400).json({ error: '该用户不是待审核状态' });
   const r = await store.updateUserById(u.id, { status: 'active' });
+
+  const admin = await currentUser(req);
+  store.addLog({
+    level: 'info',
+    method: 'POST',
+    path: `/api/admin/users/${req.params.id}/approve`,
+    ip: getClientIp(req),
+    userId: admin?.id || '',
+    username: admin?.username || '',
+    action: 'APPROVE_USER',
+    targetType: 'USER',
+    targetId: u.id,
+    details: `审批通过用户: ${u.username}${u.displayName ? ' (' + u.displayName + ')' : ''}`,
+    userAgent: getClientUA(req)
+  });
+
   res.json(r.user);
 });
 
@@ -1024,6 +1154,22 @@ app.post('/api/admin/users/:id/reject', requireAuth, requireAdmin, async (req, r
   if (u.role === 'admin') return res.status(400).json({ error: '不能拒绝管理员账号' });
   if (u.status !== 'pending') return res.status(400).json({ error: '该用户不是待审核状态' });
   const r = await store.updateUserById(u.id, { status: 'rejected' });
+
+  const admin = await currentUser(req);
+  store.addLog({
+    level: 'warn',
+    method: 'POST',
+    path: `/api/admin/users/${req.params.id}/reject`,
+    ip: getClientIp(req),
+    userId: admin?.id || '',
+    username: admin?.username || '',
+    action: 'REJECT_USER',
+    targetType: 'USER',
+    targetId: u.id,
+    details: `拒绝用户注册: ${u.username}${u.displayName ? ' (' + u.displayName + ')' : ''}`,
+    userAgent: getClientUA(req)
+  });
+
   res.json(r.user);
 });
 
@@ -1038,6 +1184,22 @@ app.patch('/api/admin/users/:id', requireAuth, requireAdmin, async (req, res) =>
   if (body.status != null) patch.status = body.status;
   const r = await store.updateUserById(u.id, patch);
   if (!r.ok) return res.status(400).json({ error: r.error });
+
+  const admin = await currentUser(req);
+  store.addLog({
+    level: 'info',
+    method: 'PATCH',
+    path: `/api/admin/users/${req.params.id}`,
+    ip: getClientIp(req),
+    userId: admin?.id || '',
+    username: admin?.username || '',
+    action: 'UPDATE_USER',
+    targetType: 'USER',
+    targetId: u.id,
+    details: `修改用户: ${u.username}，变更: ${Object.keys(patch).join(', ')}`,
+    userAgent: getClientUA(req)
+  });
+
   res.json(r.user);
 });
 
@@ -1048,6 +1210,22 @@ app.post('/api/admin/users/:id/reset-password', requireAuth, requireAdmin, async
   const passwordHash = await bcrypt.hash('123456', 10);
   const r = await store.updateUserPassword(u.id, passwordHash);
   if (!r.ok) return res.status(400).json({ error: r.error });
+
+  const admin = await currentUser(req);
+  store.addLog({
+    level: 'warn',
+    method: 'POST',
+    path: `/api/admin/users/${req.params.id}/reset-password`,
+    ip: getClientIp(req),
+    userId: admin?.id || '',
+    username: admin?.username || '',
+    action: 'RESET_PASSWORD',
+    targetType: 'USER',
+    targetId: u.id,
+    details: `重置用户密码: ${u.username}`,
+    userAgent: getClientUA(req)
+  });
+
   res.json({ ok: true, message: '密码已重置为 123456' });
 });
 
@@ -1061,6 +1239,22 @@ app.post('/api/admin/users/:id/change-password', requireAuth, requireAdmin, asyn
   const passwordHash = await bcrypt.hash(newPassword, 10);
   const r = await store.updateUserPassword(u.id, passwordHash);
   if (!r.ok) return res.status(400).json({ error: r.error });
+
+  const admin = await currentUser(req);
+  store.addLog({
+    level: 'warn',
+    method: 'POST',
+    path: `/api/admin/users/${req.params.id}/change-password`,
+    ip: getClientIp(req),
+    userId: admin?.id || '',
+    username: admin?.username || '',
+    action: 'CHANGE_PASSWORD',
+    targetType: 'USER',
+    targetId: u.id,
+    details: `管理员修改用户密码: ${u.username}`,
+    userAgent: getClientUA(req)
+  });
+
   res.json({ ok: true, message: '密码修改成功' });
 });
 
@@ -1074,7 +1268,7 @@ app.delete('/api/admin/users/:id', requireAuth, requireAdmin, async (req, res) =
     const result = await store.deleteUser(u.id);
     if (!result.ok) return res.status(400).json({ error: result.error });
     
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+    const ip = getClientIp(req);
     logger.warn('删除用户账号', { userId: req.session.userId, targetUserId: u.id, username: u.username });
     store.addLog({
       level: 'warn',
@@ -1086,7 +1280,8 @@ app.delete('/api/admin/users/:id', requireAuth, requireAdmin, async (req, res) =
       action: 'DELETE',
       targetType: 'USER',
       targetId: u.id,
-      details: `删除用户账号: ${u.username} (${u.displayName || ''})`
+      details: `删除用户账号: ${u.username} (${u.displayName || ''})`,
+      userAgent: getClientUA(req)
     });
     
     res.json({ ok: true, message: '用户账号已删除' });
@@ -1316,7 +1511,7 @@ app.post('/api/patients', requireAuth, requirePerm('managePatients'), async (req
   };
   await store.savePatient(patient);
 
-  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+  const ip = getClientIp(req);
   store.addLog({
     level: 'info',
     method: 'POST',
@@ -1327,7 +1522,8 @@ app.post('/api/patients', requireAuth, requirePerm('managePatients'), async (req
     action: 'CREATE',
     targetType: 'PATIENT',
     targetId: patient.id,
-    details: `添加患者: ${patient.name} (编号: ${patientNo})`
+    details: `添加患者: ${patient.name} (编号: ${patientNo})`,
+    userAgent: getClientUA(req)
   });
 
   res.json(patient);
@@ -1412,7 +1608,7 @@ app.put('/api/patients/:id', requireAuth, requirePerm('managePatients'), async (
   await store.savePatient(p);
   console.log('[DEBUG] PUT /api/patients/:id - 保存成功, id:', p.id);
   
-  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+  const ip = getClientIp(req);
   store.addLog({
     level: 'info',
     method: 'PUT',
@@ -1423,7 +1619,8 @@ app.put('/api/patients/:id', requireAuth, requirePerm('managePatients'), async (
     action: 'UPDATE',
     targetType: 'PATIENT',
     targetId: p.id,
-    details: `更新患者信息: ${p.name} (编号: ${p.patientNo})`
+    details: `更新患者信息: ${p.name} (编号: ${p.patientNo})`,
+    userAgent: getClientUA(req)
   });
 
   res.json(p);
@@ -1435,7 +1632,7 @@ app.delete('/api/patients/:id', requireAuth, requirePerm('deletePatients'), asyn
   if (!p) return res.status(404).json({ error: '患者不存在' });
   await store.deletePatient(req.params.id);
 
-  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+  const ip = getClientIp(req);
   store.addLog({
     level: 'warn',
     method: 'DELETE',
@@ -1446,7 +1643,8 @@ app.delete('/api/patients/:id', requireAuth, requirePerm('deletePatients'), asyn
     action: 'DELETE',
     targetType: 'PATIENT',
     targetId: p.id,
-    details: `删除患者: ${p.name} (编号: ${p.patientNo})`
+    details: `删除患者: ${p.name} (编号: ${p.patientNo})`,
+    userAgent: getClientUA(req)
   });
 
   res.json({ ok: true });
@@ -1454,6 +1652,9 @@ app.delete('/api/patients/:id', requireAuth, requirePerm('deletePatients'), asyn
 
 function normalizeHeader(cell) {
   return String(cell || '')
+    .trim()
+    // 去除模板中用于标注必填的装饰符号（★ * ※ ● 等），以及前后空格
+    .replace(/^[★*※●◆▶►✦✧#＊﹡]+/, '')
     .trim()
     .replace(/\s/g, '')
     .toLowerCase();
@@ -1484,12 +1685,12 @@ app.post(
   requirePerm('managePatients'),
   upload.single('file'),
   async (req, res) => {
-  const u = currentUser(req);
+  const u = await currentUser(req);
   if (!req.file) return res.status(400).json({ error: '请上传 Excel 文件（.xlsx / .xls）' });
 
   let workbook;
   try {
-    workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    workbook = xlsx.read(req.file.buffer, { type: 'buffer', cellDates: true });
   } catch (e) {
     return res.status(400).json({ error: '无法解析该 Excel 文件' });
   }
@@ -1521,13 +1722,59 @@ app.post(
   
   for (let i = 0; i < rows.length; i++) {
     const raw = rows[i];
-    const picked = pickRow(raw, keyMap);
+
+    // 跳过说明行/示例行/空行
+    // 判断依据：
+    //   1. 第一个非空单元格值包含"必填"、"示例"、"说明"等关键词
+    //   2. 第一个非空单元格值以 ※ 开头（示例数据标识）
+    //   3. 所有值均为空
+    const allValues = Object.values(raw).map(v => String(v || '').trim());
+    const firstNonEmpty = allValues.find(v => v !== '') || '';
+    const isDescriptionRow = /必填|示例|说明|填项|请勿|模板|import/i.test(firstNonEmpty)
+      || allValues.every(v => v === '')
+      || firstNonEmpty.startsWith('※');
+    if (isDescriptionRow) continue;
+
+    // 清除单元格值中的 ※ 前缀（用户可能未删除示例行但修改了数据，仍保留 ※ 标记的视为示例数据）
+    const cleanedRaw = {};
+    for (const k of Object.keys(raw)) {
+      const val = String(raw[k] || '').trim();
+      cleanedRaw[k] = val.startsWith('※') ? val.substring(1) : val;
+    }
+
+    const picked = pickRow(cleanedRaw, keyMap);
     const name = (picked.name || '').trim();
     if (!name) {
       errors.push({ row: i + 2, message: '缺少姓名' });
       continue;
     }
-    
+
+    // 身份证号码格式验证（含校验码，与前端 validateIdCardStrict 保持一致）
+    if (picked.idCard) {
+      const idCard = picked.idCard.trim();
+      const idCard18 = /^\d{17}[\dXx]$/.test(idCard);
+      const idCard15 = /^\d{15}$/.test(idCard);
+      if (!idCard18 && !idCard15) {
+        errors.push({ row: i + 2, message: `身份证号码格式不正确：${idCard}（需18位或15位）` });
+        continue;
+      }
+      // 18位身份证额外校验：校验码验证
+      if (idCard18) {
+        const factor = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+        const checkCodes = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+        let sum = 0;
+        for (let ci = 0; ci < 17; ci++) {
+          sum += parseInt(idCard.charAt(ci), 10) * factor[ci];
+        }
+        const expectedCheck = checkCodes[sum % 11];
+        const actualCheck = idCard.charAt(17).toUpperCase();
+        if (actualCheck !== expectedCheck) {
+          errors.push({ row: i + 2, message: `身份证号码校验码不正确（最后一位应为"${expectedCheck}"）：${idCard}` });
+          continue;
+        }
+      }
+    }
+
     // 检查身份证号码是否重复
     if (picked.idCard) {
       const duplicateIdCard = existingPatients.find(p => p.idCard === picked.idCard);
@@ -1536,17 +1783,100 @@ app.post(
         continue;
       }
     }
-    
+
+    // 根据身份证号自动提取出生日期和性别
+    let autoBirthDate = '';
+    let autoGender = '';
+    if (picked.idCard) {
+      const idCard = picked.idCard.trim();
+      if (idCard.length === 18) {
+        // 18位身份证：第7-14位是YYYYMMDD，第17位奇数=男，偶数=女
+        autoBirthDate = `${idCard.substring(6,10)}-${idCard.substring(10,12)}-${idCard.substring(12,14)}`;
+        autoGender = parseInt(idCard.charAt(16)) % 2 === 1 ? '男' : '女';
+      } else if (idCard.length === 15) {
+        // 15位身份证：第7-12位是YYMMDD（需加19），第15位奇数=男，偶数=女
+        autoBirthDate = `19${idCard.substring(6,8)}-${idCard.substring(8,10)}-${idCard.substring(10,12)}`;
+        autoGender = parseInt(idCard.charAt(14)) % 2 === 1 ? '男' : '女';
+      }
+    }
+
+    // 日期字段格式标准化：将 2023/5/4、2023.5.4 等转为 YYYY-MM-DD
+    function normalizeDate(d) {
+      // 处理 xlsx cellDates: true 返回的 Date 对象
+      if (d instanceof Date) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+      if (!d) return '';
+      const s = String(d).trim();
+      // 已经是标准格式
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      // 斜杠或点分隔：2023/5/4 或 2023.5.4
+      const m = s.match(/^(\d{4})[\/.](\d{1,2})[\/.](\d{1,2})$/);
+      if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+      // 尝试 Date 解析作为兜底
+      const dt = new Date(s);
+      if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
+      return s;
+    }
+
+    // 标准化首次透析日期
+    const normalizedFirstDialysisDate = normalizeDate(picked.firstDialysisDate);
+
+    // 首次透析日期校验（与手动添加患者保持一致）
+    if (!normalizedFirstDialysisDate) {
+      errors.push({ row: i + 2, message: '缺少首次透析日期' });
+      continue;
+    }
+
+    // 校验首次透析日期格式有效性
+    const fddObj = new Date(normalizedFirstDialysisDate);
+    if (isNaN(fddObj.getTime())) {
+      errors.push({ row: i + 2, message: `首次透析日期格式无效：${picked.firstDialysisDate}` });
+      continue;
+    }
+
+    // 校验首次透析日期不能早于出生日期
+    const effectiveBirthDate = autoBirthDate || normalizeDate(picked.birthDate);
+    if (effectiveBirthDate) {
+      const bdObj = new Date(effectiveBirthDate);
+      if (!isNaN(bdObj.getTime())) {
+        fddObj.setHours(0, 0, 0, 0);
+        bdObj.setHours(0, 0, 0, 0);
+        if (fddObj < bdObj) {
+          errors.push({ row: i + 2, message: `首次透析日期（${normalizedFirstDialysisDate}）不能早于出生日期（${effectiveBirthDate}）` });
+          continue;
+        }
+      }
+    }
+
+    // 校验首次透析日期不能晚于当前系统日期
+    const todayCheck = new Date();
+    todayCheck.setHours(0, 0, 0, 0);
+    const fddForTodayCheck = new Date(normalizedFirstDialysisDate);
+    fddForTodayCheck.setHours(0, 0, 0, 0);
+    if (fddForTodayCheck > todayCheck) {
+      errors.push({ row: i + 2, message: `首次透析日期（${normalizedFirstDialysisDate}）不能晚于当前系统日期` });
+      continue;
+    }
+
+    // 自动生成patientNo
+    const patientNo = await store.getNextPatientNo();
+
     const patient = {
       id: store.generatePatientId(),
+      patientNo,
       name,
-      gender: picked.gender || '',
-      birthDate: picked.birthDate || '',
+      // 优先使用身份证号自动提取的值，若用户也填了则以身份证号提取为准
+      gender: autoGender || picked.gender || '',
+      birthDate: autoBirthDate || normalizeDate(picked.birthDate),
       phone: picked.phone || '',
       idCard: picked.idCard || '',
       dialysisId: picked.dialysisId || '',
       bedNo: picked.bedNo || '',
-      firstDialysisDate: picked.firstDialysisDate || '',
+      firstDialysisDate: normalizedFirstDialysisDate,
       height: picked.height || '',
       dryWeight: picked.dryWeight || '',
       preWeight: picked.preWeight || '',
@@ -1562,6 +1892,20 @@ app.post(
     store.savePatient(patient);
     imported.push(patient);
   }
+
+  // 记录导入操作日志
+  store.addLog({
+    level: 'info',
+    method: 'POST',
+    path: '/api/patients/import',
+    ip: getClientIp(req),
+    userId: u.id,
+    username: u.username,
+    action: 'IMPORT',
+    targetType: 'PATIENT',
+    details: `批量导入患者：成功${imported.length}条，失败${errors.length}条`,
+    userAgent: getClientUA(req)
+  });
 
   res.json({ imported: imported.length, errors, patients: imported });
   }
@@ -1644,7 +1988,7 @@ app.post('/api/patients/:id/assessments', requireAuth, requirePerm('scorePatient
     await store.savePatient(p);
 
     // 11. 记录操作日志
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+    const ip = getClientIp(req);
     const patientDetails = p.patientNo ? `患者 ${p.name} (编号: ${p.patientNo})` : `患者 ${p.name}`;
     store.addLog({
       level: 'info',
@@ -1656,7 +2000,8 @@ app.post('/api/patients/:id/assessments', requireAuth, requirePerm('scorePatient
       action: 'ASSESS',
       targetType: 'ASSESSMENT',
       targetId: assessment.id,
-      details: `${patientDetails} 评估得分: ${totalScore}, 分级: ${level.name}`
+      details: `${patientDetails} 评估得分: ${totalScore}, 分级: ${level.name}`,
+      userAgent: getClientUA(req)
     });
 
     // 12. 返回响应
@@ -1787,7 +2132,7 @@ app.delete('/api/assessments/:id', requireAuth, requirePerm('deleteRecords'), as
     await recalculatePatientNextAssessmentDue(assessment.patientId);
     console.log(`[DEBUG] 患者评估时间重新计算完成 (patientId=${assessment.patientId})`);
     
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+    const ip = getClientIp(req);
     store.addLog({
       level: 'warn',
       method: 'DELETE',
@@ -1798,7 +2143,8 @@ app.delete('/api/assessments/:id', requireAuth, requirePerm('deleteRecords'), as
       action: 'DELETE',
       targetType: 'ASSESSMENT',
       targetId: String(req.params.id),
-      details: `删除评估记录 id=${req.params.id}, 患者id=${assessment.patientId}, 得分=${assessment.totalScore}`
+      details: `删除评估记录 id=${req.params.id}, 患者id=${assessment.patientId}, 得分=${assessment.totalScore}`,
+      userAgent: getClientUA(req)
     });
     res.json({ ok: true });
   } catch (e) {
@@ -1838,7 +2184,7 @@ app.post('/api/assessments/batch-delete', requireAuth, requirePerm('deleteRecord
       console.log(`[DEBUG] 患者评估时间重新计算完成 (patientId=${patientId})`);
     }
     
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '';
+    const ip = getClientIp(req);
     store.addLog({
       level: 'warn',
       method: 'POST',
@@ -1849,7 +2195,8 @@ app.post('/api/assessments/batch-delete', requireAuth, requirePerm('deleteRecord
       action: 'DELETE',
       targetType: 'ASSESSMENT',
       targetId: ids.join(','),
-      details: `批量删除评估记录 ids=[${ids.join(',')}] 共${ids.length}条`
+      details: `批量删除评估记录 ids=[${ids.join(',')}] 共${ids.length}条`,
+      userAgent: getClientUA(req)
     });
     res.json({ ok: true, deleted: ids.length });
   } catch (e) {

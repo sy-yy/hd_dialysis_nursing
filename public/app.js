@@ -1148,6 +1148,60 @@ function showMessage(message, type = 'info', duration = 3000) {
   }, duration);
 }
 
+/**
+ * 展示导入结果弹窗
+ * @param {number} importedCount - 成功导入条数
+ * @param {Array}  errorList     - 错误列表，每项 { row, message }
+ */
+function showImportResultModal(importedCount, errorList) {
+  const modal   = document.getElementById('import-result-modal');
+  const content = document.getElementById('import-result-content');
+  if (!modal || !content) return;
+
+  const failCount = errorList.length;
+
+  // 构建内容 HTML
+  let html = '';
+
+  // 统计摘要
+  html += `<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;">`;
+  if (importedCount > 0) {
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:8px;background:#e8f5e9;color:#2e7d32;font-weight:600;font-size:1rem;">
+               <span style="font-size:1.3rem;">✅</span> 成功导入 ${importedCount} 条
+             </div>`;
+  }
+  html += `<div style="display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:8px;background:#ffebee;color:#c62828;font-weight:600;font-size:1rem;">
+             <span style="font-size:1.3rem;">❌</span> 未导入 ${failCount} 条
+           </div>`;
+  html += `</div>`;
+
+  // 错误明细表格
+  html += `<p style="margin:0 0 8px;color:#555;font-size:0.875rem;">以下行未能导入，请核对后重新上传：</p>`;
+  html += `<div style="max-height:320px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:6px;">
+    <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+      <thead>
+        <tr style="background:#f5f5f5;position:sticky;top:0;z-index:1;">
+          <th style="padding:8px 12px;text-align:center;width:64px;border-bottom:1px solid #ddd;white-space:nowrap;">行号</th>
+          <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #ddd;">失败原因</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  errorList.forEach((err, idx) => {
+    const bg = idx % 2 === 0 ? '#fff' : '#fafafa';
+    html += `<tr style="background:${bg};">
+               <td style="padding:8px 12px;text-align:center;color:#888;border-bottom:1px solid #f0f0f0;">第 ${err.row} 行</td>
+               <td style="padding:8px 12px;color:#c62828;border-bottom:1px solid #f0f0f0;">${escapeHtml(err.message)}</td>
+             </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+
+  content.innerHTML = html;
+  modal.classList.remove('hidden');
+}
+
+
 // ==================== 权限管理 ====================
 
 /**
@@ -3145,74 +3199,108 @@ async function exportRecords() {
 
 /**
  * 导出患者导入模板
+ * 字段名与患者管理表单保持一致，必填项以红色星号（★）标注
  */
 async function exportPatientTemplate() {
   try {
-    // 获取患者字段配置
+    // 与患者管理表单字段完全对应的默认配置（已移除透前体重，与表单一致）
+    // id 与后端导入解析保持一致
+    const DEFAULT_FIELDS = [
+      { id: 'name',             name: '姓名',         required: true,  enabled: true },
+      { id: 'gender',           name: '性别',         required: false, enabled: true },
+      { id: 'birthDate',        name: '出生日期',     required: false, enabled: true },
+      { id: 'phone',            name: '联系电话',     required: true,  enabled: true },
+      { id: 'idCard',           name: '身份证',       required: true,  enabled: true },
+      { id: 'firstDialysisDate',name: '首次透析日期', required: true,  enabled: true },
+      { id: 'height',           name: '身高(cm)',     required: false, enabled: true },
+      { id: 'dryWeight',        name: '干体重(kg)',   required: false, enabled: true },
+      { id: 'dialysisFreq',     name: '透析频次',     required: false, enabled: true },
+      { id: 'notes',            name: '备注',         required: false, enabled: true },
+    ];
+
+    // 获取患者字段配置（尝试远端，失败则用默认）
     let fieldsConfig = [];
     try {
-      fieldsConfig = await api('/api/patient-fields-config');
+      const remote = await api('/api/patient-fields-config');
+      if (Array.isArray(remote) && remote.length) {
+        // 用远端配置，但过滤掉年龄（只读/计算字段）和透前体重（已移除），确保与表单一致
+        const EXCLUDE_IDS = ['age', 'preWeight'];
+        fieldsConfig = remote.filter(f => !EXCLUDE_IDS.includes(f.id));
+      } else {
+        fieldsConfig = DEFAULT_FIELDS;
+      }
     } catch (e) {
       console.error('获取字段配置失败，使用默认配置:', e);
-      // 使用默认配置
-      fieldsConfig = [
-        { id: 'name', name: '姓名', required: true, enabled: true },
-        { id: 'gender', name: '性别', required: false, enabled: true },
-        { id: 'birthDate', name: '出生日期', required: false, enabled: true },
-        { id: 'phone', name: '联系电话', required: true, enabled: true },
-        { id: 'idCard', name: '身份证', required: true, enabled: true },
-        { id: 'firstDialysisDate', name: '首次透析日期', required: true, enabled: true },
-        { id: 'height', name: '身高', required: false, enabled: true },
-        { id: 'dryWeight', name: '干体重', required: false, enabled: true },
-        { id: 'preWeight', name: '透前体重', required: false, enabled: true },
-        { id: 'dialysisFreq', name: '透析频次', required: false, enabled: true },
-        { id: 'notes', name: '备注', required: false, enabled: true },
-      ];
+      fieldsConfig = DEFAULT_FIELDS;
     }
-    
+
     // 过滤启用的字段
-    const enabledFields = fieldsConfig.filter(f => f.enabled);
-    
-    // 构建工作表数据
-    // 第一行：标题行
+    const enabledFields = fieldsConfig.filter(f => f.enabled !== false);
+
+    // 第一行：标题行（必填项前缀红星 ★，非必填直接用字段名）
     const headers = enabledFields.map(f => {
-      return f.required ? `${f.name} *` : f.name;
+      return f.required ? `★${f.name}` : f.name;
     });
-    
-    // 第二行：示例数据
+
+    // 第二行：说明行（提示红星为必填，示例行标记说明）
+    const helpRow = enabledFields.map((f, i) => i === 0 ? '★ = 必填项，※ = 示例数据，请删除示例行后填写真实数据' : '');
+
+    // 第三行：示例数据（每个单元格前加 ※ 标识，导入时自动跳过带 ※ 的行）
     const sampleData = enabledFields.map(f => {
       switch (f.id) {
-        case 'name': return '张三';
-        case 'gender': return '男';
-        case 'birthDate': return '1970-01-01';
-        case 'phone': return '13800138000';
-        case 'idCard': return '110101197001011234';
-        case 'firstDialysisDate': return '2023-01-01';
-        case 'height': return '170';
-        case 'dryWeight': return '60';
-        case 'preWeight': return '62';
-        case 'dialysisFreq': return '3次/周';
-        case 'notes': return '示例备注';
-        default: return '';
+        case 'name':              return '※张三';
+        case 'gender':            return '※男';
+        case 'birthDate':         return '※1970-01-01';
+        case 'phone':             return '※13800138000';
+        case 'idCard':            return '※110101197001010016';
+        case 'firstDialysisDate': return '※2023-01-01';
+        case 'height':            return '※170';
+        case 'dryWeight':         return '※60';
+        case 'dialysisFreq':      return '※3次/周';
+        case 'notes':             return '※示例备注';
+        default:                  return '';
       }
     });
-    
+
     // 使用XLSX构建工作簿
     const wb = XLSX.utils.book_new();
-    
-    // 创建工作表数据
-    const wsData = [headers, sampleData];
+
+    // 工作表数据：标题行 + 说明行 + 示例数据行
+    const wsData = [headers, helpRow, sampleData];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    
+
+    // 为示例行（第3行）设置红色字体样式
+    // 同时为标题行中必填列的单元格设置红色字体样式
+    try {
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for (let R = 0; R <= range.e.r; R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[cellAddr];
+          if (!cell) continue;
+          // 标题行（第1行）：必填项 ★ 前缀标红
+          if (R === 0 && typeof cell.v === 'string' && cell.v.startsWith('★')) {
+            if (!cell.s) cell.s = {};
+            cell.s.font = { color: { rgb: 'FF0000' }, bold: true };
+          }
+          // 示例行（第3行）：所有单元格标红 + 斜体，提示用户这是示例
+          if (R === 2) {
+            if (!cell.s) cell.s = {};
+            cell.s.font = { color: { rgb: 'FF0000' }, italic: true };
+          }
+        }
+      }
+    } catch (_) { /* 样式不支持时静默忽略 */ }
+
     // 设置列宽
-    ws['!cols'] = enabledFields.map(() => ({ wch: 15 }));
-    
+    ws['!cols'] = enabledFields.map(f => ({ wch: Math.max(f.name.length * 2 + 4, 14) }));
+
     // 添加工作表
     XLSX.utils.book_append_sheet(wb, ws, '患者导入模板');
-    
+
     // 生成Excel文件并下载
     XLSX.writeFile(wb, `患者导入模板_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    
+
     showMessage('模板导出成功', 'success');
   } catch (e) {
     console.error('导出模板失败:', e);
@@ -3904,12 +3992,16 @@ function initEventBindings() {
           return;
         }
         
-        let msg = `成功导入 ${data.imported} 条`;
-        if (data.errors && data.errors.length) {
-          msg += `；跳过 ${data.errors.length} 行（缺姓名等）`;
+        const importedCount = data.imported || 0;
+        const errorList = data.errors || [];
+
+        if (errorList.length === 0) {
+          // 全部成功，toast 提示即可
+          showMessage(`✅ 成功导入 ${importedCount} 条患者数据`, 'success', 4000);
+        } else {
+          // 有失败项，弹出详情 modal
+          showImportResultModal(importedCount, errorList);
         }
-        
-        showMessage(msg, 'success');
         refreshPatients();
         refreshDashboard();
         
@@ -3969,6 +4061,14 @@ function initEventBindings() {
       if (modal) modal.classList.add('hidden');
     };
   });
+
+  // 导入结果弹窗底部关闭按钮
+  const importResultCloseBtn = document.getElementById('import-result-close');
+  if (importResultCloseBtn) {
+    importResultCloseBtn.onclick = () => {
+      document.getElementById('import-result-modal')?.classList.add('hidden');
+    };
+  }
   
   // 点击模态框背景关闭
   document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
